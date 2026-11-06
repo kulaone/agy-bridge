@@ -92,13 +92,13 @@ blaming any one reviewer.
 
 A review has:
 
-- **verdict**: `approve`, `changes_requested`, or `needs_discussion` (the approach itself
-  is in question).
+- **verdict**: `approve`, `changes_requested`, or `needs_discussion` (important
+  questions are open, or the approach itself is in question).
 - **summary**: a few sentences.
 - **findings**: each with:
   - `severity`: `critical`, `high`, `medium`, `low` or `info`;
   - a `category`;
-  - a `location` (`path:line`);
+  - a `location`: `path:line` for code, a section or component for a design;
   - the `issue`;
   - a `recommendation`.
 - **questions_for_claude**: what AGY wants answered.
@@ -154,12 +154,35 @@ and outlive Claude Code.
 Only one Claude Code window can drive a session at a time. If another window is using it,
 the tool says so, and you can continue in that window or start a new session.
 
+## Design reviews
+
+`design-reviewer` reviews a design before it is built: a design doc, an ADR, a technical
+plan, or a proposed change to the system's structure. Ask for it by name, or just ask
+for an AGY review of a design:
+
+- "Ask the AGY design reviewer about docs/design/sync.md."
+- "Before we build this, get an AGY design review of the plan."
+
+It works as an outside architect, and it is a discussion rather than a fix loop:
+
+- It reads the design and the current project, then asks about goals, constraints and
+  priorities before judging. Expect 2 to 4 questions per turn and several rounds.
+- It reviews through ten lenses, using those that fit: problem and drivers, structure,
+  data, failure, operations, security and privacy, change over time, scale and cost,
+  people and teams, and AI features.
+- It questions choices and offers alternatives with their trade-offs, but doesn't push:
+  a reasoned answer settles a point.
+- It never edits the design. Claude updates the document, and brings you the decisions
+  only you can make, such as priorities, budget or team plans.
+
+The lenses are in `~/.gemini/config/skills/architecture-review/references/principles.md`.
+Edit them to suit your team.
+
 ## Other kinds of review
 
-agy-bridge ships one agent, `code-reviewer`. You can add your own, for example an
-architect that discusses a design doc with Claude, or a reviewer for docs or prompts. See
-[Writing your own agents](writing-agents.md). Claude picks an agent by name and purpose
-from those installed, and asks you if none fits.
+You can add your own agents, for example a reviewer for docs, prompts or infrastructure
+config. See [Writing your own agents](writing-agents.md). Claude picks an agent by name
+and purpose from those installed, and asks you if none fits.
 
 ## The tools
 

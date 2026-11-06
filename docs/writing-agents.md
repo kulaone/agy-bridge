@@ -1,9 +1,8 @@
 # Writing your own agents
 
-agy-bridge works with any AGY agent, not only the `code-reviewer` it installs. You might
-add, for example:
+agy-bridge works with any AGY agent, not only the `code-reviewer` and `design-reviewer`
+it installs. You might add, for example:
 
-- an architect that discusses a design doc with Claude;
 - a reviewer for docs, prompts or infrastructure config;
 - a security reviewer with its own checklist.
 
@@ -103,9 +102,9 @@ Every agent answers in the review schema unless the caller passes another:
 | `findings` | Each has `severity`, `category`, `location`, `issue` and `recommendation`. |
 | `questions_for_claude` | What the agent wants answered. |
 
-This suits most reviews, not only code. For a discussion-style agent such as an
-architect, have it use `needs_discussion` and put its questions in
-`questions_for_claude`. The Claude skill treats that as a conversation, not a fix loop:
+This suits most reviews, not only code. For a discussion-style agent, have it use
+`needs_discussion` and put its questions in `questions_for_claude`, as the shipped
+`design-reviewer` does. The Claude skill treats that as a conversation, not a fix loop:
 Claude answers, pushes back, and brings in you for decisions only you can make.
 
 ## Telling Claude about it

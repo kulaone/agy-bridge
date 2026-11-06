@@ -34,7 +34,7 @@ Claude Code ──stdio MCP──▶ agy-bridge (one per Claude Code session)
 | `selfcheck.py` | AGY's version, models and real tool list (cached), and the agent tool check. |
 | `paths.py` | Locations and environment variables. |
 | `cli.py` | `install`, `uninstall`, `doctor`, `serve`. |
-| `assets/` | The files `install` copies: the example agent, its skill, and the Claude skill. |
+| `assets/` | The files `install` copies: the example agents, their skills, and the Claude skill. |
 
 ## A turn
 

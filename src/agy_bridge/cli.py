@@ -1,9 +1,9 @@
 """Command line. With no subcommand, `agy-bridge` runs the MCP server (what Claude
 Code launches); the subcommands set it up and check it.
 
-  agy-bridge install     copy the example agent and skills, register the MCP server
+  agy-bridge install     copy the example agents and skills, register the MCP server
   agy-bridge uninstall   remove what install added
-  agy-bridge doctor      check AGY, the agent, the Claude skill and the registration
+  agy-bridge doctor      check AGY, the agents, the Claude skill and the registration
 
 install records what it wrote in ~/.agy-bridge/install.json, with a hash of each
 file, so it can update its own files later without touching files the user changed.
@@ -31,7 +31,12 @@ import yaml
 from . import paths, selfcheck
 
 SERVER_NAME = "agy"
-EXAMPLE_AGENT = "code-reviewer"
+
+
+def shipped_agents() -> list[str]:
+    """Names of the example agents `install` puts in place."""
+    agents = resources.files("agy_bridge") / "assets" / "agy" / "agents"
+    return sorted(Path(str(f)).stem for f in agents.iterdir() if f.name.endswith(".md"))
 
 
 # ----- what install puts where ------------------------------------------------------
@@ -235,17 +240,18 @@ def install(args: argparse.Namespace) -> int:
     if not args.dry_run:
         _save_manifest(manifest)
     if project:
-        print("\nNote: the agent file holds an absolute skill path. On another machine, "
-              "edit its skills: path to match that checkout.")
+        print("\nNote: the agent files hold absolute skill paths. On another machine, "
+              "edit their skills: paths to match that checkout.")
     print("\nNext: restart Claude Code, then run `agy-bridge doctor`."
           + ("\nSome items were kept; see the ! lines above." if skipped else ""))
     return 0
 
 
 def _remove_empty_parents(dest: Path, project: Path | None) -> None:
-    """Remove folders left empty: up to the project root, or only a skill's own folder
-    in the shared global agents/skills folders."""
-    stop = project or (dest.parent.parent if dest.name == "SKILL.md" else dest.parent)
+    """Remove folders left empty, up to the project root or, globally, up to (not
+    including) the shared agents/skills folder the file was installed into."""
+    roots = [project] if project else list(_dest_dirs(None).values())
+    stop = next((r for r in roots if r in dest.parents), dest.parent)
     d = dest.parent
     while d != stop and stop in d.parents and not any(d.iterdir()):
         d.rmdir()
@@ -353,23 +359,27 @@ def doctor(args: argparse.Namespace) -> int:
     else:
         r.fail("`agy models` listed nothing: run `agy` once to log in")
 
-    agent_file = selfcheck.find_agent_file(EXAMPLE_AGENT, cwd)
-    if agent_file is None:
-        r.warn(f"agent '{EXAMPLE_AGENT}' not found from {cwd}: run `agy-bridge install` "
-               "(fine if you use only your own agents)")
-    else:
+    first_check = True
+    for name in shipped_agents():
+        agent_file = selfcheck.find_agent_file(name, cwd)
+        if agent_file is None:
+            r.warn(f"agent '{name}' not found from {cwd}: run `agy-bridge install` "
+                   "(fine if you don't use it)")
+            continue
         text = agent_file.read_text()
         if "{{" in text:
             r.fail(f"{agent_file} still has a {{{{...}}}} placeholder: reinstall it")
         try:
-            print("  … checking the agent against AGY's tools (the first run takes a minute)")
-            asyncio.run(selfcheck.check_agent(EXAMPLE_AGENT, cwd))
-            r.ok(f"agent '{EXAMPLE_AGENT}' ({agent_file}) uses only tools AGY has")
+            if first_check:
+                print("  … checking agents against AGY's tools (the first run takes a minute)")
+                first_check = False
+            asyncio.run(selfcheck.check_agent(name, cwd))
+            r.ok(f"agent '{name}' ({agent_file}) uses only tools AGY has")
         except (ValueError, RuntimeError, OSError) as e:
             r.fail(str(e) or type(e).__name__)
         for skill in _agent_skills(text):
             if not Path(skill).is_dir():
-                r.fail(f"agent '{EXAMPLE_AGENT}' lists a skill folder that doesn't exist: {skill}")
+                r.fail(f"agent '{name}' lists a skill folder that doesn't exist: {skill}")
 
     skill_dirs = [d / ".claude" / "skills" / "agy" for d in [Path(cwd), *Path(cwd).parents]]
     skill = next((d for d in [*skill_dirs, paths.CLAUDE_SKILLS_DIR / "agy"]
@@ -427,7 +437,7 @@ def main(argv: list[str] | None = None) -> int:
                     "With no command, runs the server.")
     sub = parser.add_subparsers(dest="command")
 
-    p = sub.add_parser("install", help="install the example agent and skills, register the server")
+    p = sub.add_parser("install", help="install the example agents and skills, register the server")
     p.add_argument("--project", metavar="DIR",
                    help="install into DIR/.agents and DIR/.claude instead of your home folder")
     p.add_argument("--force", action="store_true",

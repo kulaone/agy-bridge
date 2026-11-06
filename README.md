@@ -61,12 +61,15 @@ Restart Claude Code, then check the setup:
 uv run agy-bridge doctor
 ```
 
-`install` copies three files and registers the server:
+`install` copies two AGY agents with their skills, plus a Claude skill, and registers the
+server:
 
 | What | Where |
 |---|---|
-| The example AGY agent, `code-reviewer` | `~/.gemini/config/agents/code-reviewer.md` |
-| Its AGY skill, `code-review` | `~/.gemini/config/skills/code-review/SKILL.md` |
+| AGY agent `code-reviewer`: an outside senior reviewer for code changes | `~/.gemini/config/agents/code-reviewer.md` |
+| Its AGY skill, `code-review` | `~/.gemini/config/skills/code-review/` |
+| AGY agent `design-reviewer`: an outside architect for designs, ADRs and plans | `~/.gemini/config/agents/design-reviewer.md` |
+| Its AGY skill, `architecture-review`, with ten review lenses | `~/.gemini/config/skills/architecture-review/` |
 | The Claude skill that teaches Claude the review loop | `~/.claude/skills/agy/SKILL.md` |
 | The MCP server, named `agy` | Claude Code's user config |
 
@@ -80,6 +83,7 @@ Ask Claude Code in your own words:
 
 - "Review my uncommitted changes with AGY."
 - "Run AGY with the code-review skill on this branch against main, using Argon high."
+- "Ask the AGY design reviewer about docs/design/sync.md before we build it."
 - "What is AGY doing right now?"
 - "Resume yesterday's AGY review of this project."
 
@@ -108,7 +112,7 @@ Read [SECURITY.md](SECURITY.md) before using it on code you can't afford to have
 - [Install guide](docs/install.md): install options, per-project installs, uninstalling
 - [User guide](docs/user-guide.md): reviews, models, results, sessions, the tools
 - [Configuration](docs/configuration.md): environment variables, files and folders
-- [Writing your own agents](docs/writing-agents.md): add an architect, a docs reviewer
+- [Writing your own agents](docs/writing-agents.md): add a docs or security reviewer
 - [Troubleshooting](docs/troubleshooting.md)
 - [Architecture](docs/architecture.md): how it works and why
 - [Contributing](CONTRIBUTING.md) and the [changelog](CHANGELOG.md)

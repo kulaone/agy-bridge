@@ -35,6 +35,14 @@ def test_install_fills_in_paths_and_registers(env: dict) -> None:
     assert registered(Path(env["HOME"]) / ".claude.json") == CMD.split()
 
 
+def test_install_ships_the_design_reviewer(env: dict) -> None:
+    run_cli(env, "install", "--server-command", CMD)
+    gemini = Path(env["HOME"]) / ".gemini/config"
+    skill = gemini / "skills/architecture-review"
+    assert (skill / "SKILL.md").exists() and (skill / "references/principles.md").exists()
+    assert f"- {skill}\n" in (gemini / "agents/design-reviewer.md").read_text()
+
+
 def test_reinstall_is_a_no_op(env: dict) -> None:
     run_cli(env, "install", "--server-command", CMD)
     out = run_cli(env, "install", "--server-command", CMD)
@@ -112,7 +120,9 @@ def test_uninstall_keeps_changed_files_and_foreign_registration(env: dict) -> No
     assert "was changed since install: kept" in out.stdout
     assert f["claude"].read_text() == "changed after install\n"
     assert not f["agent"].exists() and not f["skill"].parent.exists()
-    assert f["agent"].parent.exists()  # shared AGY folders stay
+    skills = Path(env["HOME"]) / ".gemini/config/skills"
+    assert not (skills / "architecture-review").exists()  # nested references/ too
+    assert f["agent"].parent.exists() and skills.exists()  # shared AGY folders stay
     assert registered(Path(env["HOME"]) / ".claude.json") is None  # it was ours (forced)
 
 
@@ -126,6 +136,8 @@ def test_doctor_all_good(env: dict, tmp_path: Path) -> None:
     out = run_cli(env, "doctor", cwd=tmp_path)
     assert out.returncode == 0, out.stdout
     assert "All good." in out.stdout and "logging is off" in out.stdout
+    for name in ("code-reviewer", "design-reviewer"):
+        assert f"agent '{name}'" in out.stdout
 
 
 def test_doctor_finds_problems(env: dict, tmp_path: Path) -> None:

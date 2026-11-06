@@ -6,6 +6,17 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A second example agent, `design-reviewer`, with the `architecture-review` skill: an
+  outside architect that discusses designs, ADRs and plans with Claude, through ten
+  review lenses. `doctor` checks every shipped agent.
+
+### Changed
+
+- `code-reviewer` is now an outside senior reviewer. It questions the approach and
+  shows alternatives, raises each once, and accepts a reasoned answer.
+
 ## [0.1.0] - unreleased
 
 First public release.

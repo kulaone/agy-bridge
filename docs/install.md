@@ -43,7 +43,7 @@ the same way.
 1. **Restart Claude Code.** It loads MCP servers and skills when it starts.
 2. **Run `agy-bridge doctor`**, or `uv run agy-bridge doctor` from a clone. It checks:
    - AGY is installed and signed in;
-   - `code-reviewer` uses only tools your AGY has;
+   - the shipped agents use only tools your AGY has;
    - the Claude skill is installed;
    - Claude Code can connect to the server;
    - the state folder is writable.
@@ -56,8 +56,8 @@ the same way.
 
 | Step | Global install (default) | `--project DIR` |
 |---|---|---|
-| AGY agent `code-reviewer` | `~/.gemini/config/agents/` | `DIR/.agents/agents/` |
-| AGY skill `code-review` | `~/.gemini/config/skills/` | `DIR/.agents/skills/` |
+| AGY agents `code-reviewer`, `design-reviewer` | `~/.gemini/config/agents/` | `DIR/.agents/agents/` |
+| AGY skills `code-review`, `architecture-review` | `~/.gemini/config/skills/` | `DIR/.agents/skills/` |
 | Claude skill `agy` | `~/.claude/skills/` | `DIR/.claude/skills/` |
 | MCP server `agy` | Claude Code user scope (`~/.claude.json`) | project scope (`DIR/.mcp.json`) |
 
@@ -72,7 +72,7 @@ the same way.
 - **The MCP registration** is left alone if it already runs the same command. If it runs
   a different command, `install` keeps it and tells you; `--force` replaces it.
 
-The agent file names its skill by absolute path, because AGY requires one. `install`
+Each agent file names its skill by absolute path, because AGY requires one. `install`
 fills that path in for you.
 
 ### Options
@@ -91,15 +91,15 @@ fills that path in for you.
 agy-bridge install --project ~/code/my-app
 ```
 
-Use it to keep the agent and skills in a project's own repo, where you can tune them for
+Use it to keep the agents and skills in a project's own repo, where you can tune them for
 that project. AGY uses the nearest agent with a given name, so inside that project its
-`code-reviewer` takes over from the global one, together with the skill it points to.
+agents take over from the global ones, together with the skills they point to.
 
 When you commit those files, keep in mind:
 
-- The agent file contains an absolute path to the skill folder, which only works on
+- Each agent file contains an absolute path to its skill folder, which only works on
   your machine. Each teammate edits the `skills:` path in the committed
-  `.agents/agents/code-reviewer.md` to match their checkout, unless everyone keeps the
+  `.agents/agents/*.md` files to match their checkout, unless everyone keeps the
   repo at the same path. (Running `install --project .` on their side won't help: it
   keeps files it didn't write, and `--force` would reset your team's edits to the stock
   files.)

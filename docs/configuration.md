@@ -105,12 +105,14 @@ marks the result `review_parsed_from_text`.
 
 ## Agents and skills
 
-Edit the installed agent and skill to suit you. `install` won't overwrite your edits:
+Edit the installed agents and skills to suit you. `install` won't overwrite your edits:
 
-- `~/.gemini/config/agents/code-reviewer.md`: the reviewer's role and ground rules, and
-  the tools it may use.
-- `~/.gemini/config/skills/code-review/SKILL.md`: how to review, the checklist, and how
-  to grade severity.
+- `~/.gemini/config/agents/code-reviewer.md` and `design-reviewer.md`: each reviewer's
+  role and ground rules, and the tools it may use.
+- `~/.gemini/config/skills/code-review/SKILL.md`: how to review code, the checklist, and
+  how to grade severity.
+- `~/.gemini/config/skills/architecture-review/`: how to review a design (`SKILL.md`)
+  and the ten review lenses (`references/principles.md`).
 - `~/.claude/skills/agy/SKILL.md`: how Claude runs the review loop: how many rounds,
   when to stop arguing, what to report.
 

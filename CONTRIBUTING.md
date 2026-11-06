@@ -70,8 +70,8 @@ and after every AGY update.
 1. Run both live scripts against the new version.
 2. If they pass, add the version to `TESTED_AGY_VERSIONS` in `src/agy_bridge/selfcheck.py`
    and to the README and `docs/install.md`.
-3. If AGY renamed tools, update the `tools:` list in
-   `src/agy_bridge/assets/agy/agents/code-reviewer.md`.
+3. If AGY renamed tools, update the `tools:` lists in
+   `src/agy_bridge/assets/agy/agents/*.md`.
 
 ## Pull requests
 
@@ -89,7 +89,7 @@ and after every AGY update.
 
 ```
 src/agy_bridge/     the server and CLI (see docs/architecture.md)
-  assets/           files `install` copies: example agent, its skill, the Claude skill
+  assets/           files `install` copies: example agents, their skills, the Claude skill
   data/             the default review schema
 tests/              offline tests with fake agy and claude
 scripts/            live checks against real AGY

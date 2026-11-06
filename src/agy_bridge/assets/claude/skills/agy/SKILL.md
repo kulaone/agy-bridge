@@ -1,6 +1,6 @@
 ---
 name: agy
-description: "Get an independent review from Google Antigravity (AGY) reviewer agents and discuss it with them, through the mcp__agy__* tools. Use when the user says 'run AGY', 'AGY review', 'ask AGY', 'get a review from Antigravity/Gemini', 'ask the AGY architect', or 'run AGY with the code-review skill' (or any other AGY agent or skill); when a plan or task says to get an AGY review; and to resume or check on an earlier AGY review session."
+description: "Get an independent review from Google Antigravity (AGY) reviewer agents and discuss it with them, through the mcp__agy__* tools. Use when the user says 'run AGY', 'AGY review', 'ask AGY', 'get a review from Antigravity/Gemini', 'ask the AGY architect', 'AGY design review', or 'run AGY with the code-review skill' (or any other AGY agent or skill); when a plan or task says to get an AGY review; and to resume or check on an earlier AGY review session."
 ---
 
 # AGY reviews
@@ -23,14 +23,17 @@ Tools: `mcp__agy__agy_list_agents`, `agy_start`, `agy_say`, `agy_wait`,
 
 ## Pick the agent
 
-agy-bridge installs one agent, `code-reviewer`, for code changes, diffs and
-implementations. Users may add their own, such as an architect or a docs reviewer.
-Call `agy_list_agents` to see what is installed, and pick by name and purpose:
+agy-bridge installs two agents: `code-reviewer` for code changes, diffs and
+implementations, and `design-reviewer` for designs, architecture docs, ADRs and
+technical plans. Users may add their own, such as a docs reviewer. Call
+`agy_list_agents` to see what is installed, and pick by name and purpose:
 
 - The user named an agent: use it, after checking it exists.
 - Code: `code-reviewer`.
-- Designs, plans or docs: an installed agent made for them, if there is one.
-  Otherwise ask the user whether `code-reviewer` should review them.
+- Designs, architecture, ADRs, technical plans: `design-reviewer`, or another
+  installed architecture agent if the user prefers it.
+- Other docs, specs or prompts: an installed agent made for them, if there is one.
+  Otherwise ask the user which agent should review them.
 
 A project may define its own agents in `.agents/agents/`; AGY uses the nearest one
 of a given name automatically.
@@ -61,8 +64,10 @@ AGY doesn't see this conversation. Give it what a reviewer joining cold needs.
 - How to run the tests, linters and build.
 - Anything you want it to look at hard, or already know about.
 
-**Design** (an architecture agent): the document path (or text if it isn't saved),
-the decision or question in focus, the constraints, and what you want from the review.
+**Design** (`design-reviewer`): the document path (or text if it isn't saved), the
+decision or question in focus, the goals and constraints you know of (team, load,
+budget, deadlines), the alternatives already considered, and what you want from the
+review.
 
 **Other** (docs, specs, configs, prompts): the artefact path, its purpose and
 audience, and what "good" means for it.
@@ -135,14 +140,18 @@ only if the alternative is actually better, not to end the discussion. The user
 decides the direction: tell them about any alternative worth weighing, with both
 sides, rather than adopting a big change silently.
 
-## Discussion (architecture agents, or any `needs_discussion`)
+## Discussion (`design-reviewer`, other architecture agents, or any `needs_discussion`)
 
 This is a design conversation, not a fix loop. Answer every question in
 `questions_for_claude` from what you know about the project and the user's goals.
 Push back where you disagree. Bring the user in for business decisions or
 preferences only they can make. There's no fixed round limit. Stop when AGY
-approves, or when the open points need the user. You update any documents
-yourself; AGY doesn't write them.
+approves, or when the open points need the user.
+
+Handle the `findings` in each round too. Update the document for the points you
+agree with, and tell AGY what changed (sections, or a short diff). Push back, with
+reasons, on those you don't. AGY doesn't write documents; you do. If you don't
+update the document, AGY will report the same findings again.
 
 ## Report to the user
 
