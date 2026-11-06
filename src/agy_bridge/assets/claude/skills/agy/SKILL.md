@@ -50,7 +50,8 @@ Never assume a fixed model list.
 
 A slug that already carries a level (`…-high`) must not be combined with a different
 `effort`. Some models reject `effort` entirely. If AGY returns a model error, the
-result lists `available_models`. Tell the user which model and effort you used.
+result lists `available_models`, and the session goes back to its previous model
+(`model_reverted_to`). Tell the user which model and effort you used.
 
 ## Write the first message
 

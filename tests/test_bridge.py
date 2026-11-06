@@ -201,6 +201,35 @@ def test_resume_from_a_new_bridge(installed: dict, repo: Path) -> None:
     assert again["conversation_id"] == out["conversation_id"]
 
 
+def test_wait_in_a_new_bridge_explains_the_lost_turn(installed: dict, repo: Path) -> None:
+    async def first_bridge():
+        async with bridge(installed) as b:
+            return await start(b, repo)
+
+    async def second_bridge(sid):
+        async with bridge(installed) as b:
+            return await b.call("agy_wait", session_id=sid)
+
+    out = run(first_bridge())
+    lost = run(second_bridge(out["session_id"]))
+    assert "ask AGY to repeat its last answer" in lost["error"]
+
+
+def test_rejected_model_is_not_kept(installed: dict, repo: Path) -> None:
+    async def go():
+        async with bridge(installed) as b:
+            first = await start(b, repo, model="gemini-fake-pro", effort="high")
+            sid = first["session_id"]
+            bad = await b.call("agy_say", session_id=sid, message="Try.", model="bad-model")
+            after = await b.call("agy_say", session_id=sid, message="Again.")
+            return bad, after
+
+    bad, after = run(go())
+    assert bad["status"] == "ERROR"
+    assert bad["model_reverted_to"] == {"model": "gemini-fake-pro", "effort": "high"}
+    assert "model=gemini-fake-pro; effort=high" in after["review"]["summary"]
+
+
 def test_second_bridge_cannot_drive_a_busy_session(installed: dict, repo: Path) -> None:
     async def go():
         async with bridge(installed) as a, bridge(installed) as b:

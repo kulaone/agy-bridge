@@ -150,6 +150,8 @@ and outlive Claude Code.
   the session can still be resumed.
 - **Delete one**: "End the AGY session and forget it." This removes the session's record,
   scratch folder, backups and log.
+- **Old sessions**: after 30 days unused, a session's scratch folder and backups are
+  removed to save space. The session itself stays, and can still be resumed.
 
 Only one Claude Code window can drive a session at a time. If another window is using it,
 the tool says so, and you can continue in that window or start a new session.

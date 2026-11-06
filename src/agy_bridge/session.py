@@ -89,6 +89,7 @@ class Turn:
     backup: dict[str, Any] | None = None
     backup_error: str | None = None
     overlapping: list[str] = field(default_factory=list)  # other reviews on this project
+    previous_settings: tuple[str | None, str | None] = (None, None)  # model, effort before
 
 
 class Session:
@@ -299,7 +300,8 @@ class Session:
         async with self._send_lock:  # two calls at once must not both start a turn
             await self.ensure_process(model, effort)
             number = int(self.record.get("turns", 0)) + 1
-            turn = Turn(number=number, message=text)
+            turn = Turn(number=number, message=text,
+                        previous_settings=(self.record.get("model"), self.record.get("effort")))
             turn.before = await asyncio.to_thread(tree.snapshot, self.record["cwd"])
             try:
                 turn.backup = await asyncio.to_thread(backup.take, self.id, number,

@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -189,6 +190,21 @@ def test_backup_restores_with_a_staged_new_file_still_there(state: Path, repo: P
         restored = expected if cwd == repo else {"pkg/new.py": expected["pkg/new.py"]}
         assert {p: (repo / p).read_text() for p in restored} == restored
         (repo / "stats.py").write_text(expected["stats.py"])
+
+
+def test_idle_sessions_lose_scratch_and_backups_but_stay(state: Path, repo: Path) -> None:
+    from agy_bridge import server
+    from agy_bridge.session import scratch_dir
+
+    old = (datetime.now(UTC) - timedelta(days=server.IDLE_DAYS + 1)).isoformat()
+    for sid, last_used in (("old", old), ("recent", registry.now_iso())):
+        registry.put(sid, {"cwd": str(repo), "last_used": last_used})
+        scratch_dir(sid).mkdir(parents=True)
+        backup.take(sid, 1, str(repo))
+    server._prune_idle_sessions()
+    assert not scratch_dir("old").exists() and not backup.backup_root("old").exists()
+    assert scratch_dir("recent").exists() and backup.backup_root("recent").exists()
+    assert set(registry.list_all()) == {"old", "recent"}  # both still resumable
 
 
 def test_backup_keeps_last_five(state: Path, repo: Path) -> None:

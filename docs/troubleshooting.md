@@ -56,7 +56,8 @@ look for an agy-bridge update or [open an issue](../CONTRIBUTING.md#reporting-bu
 
 ### A model error, such as an unknown model
 The result lists `available_models`. Your AGY plan may not include that model, or its
-name has changed. Ask Claude to refresh the AGY model list.
+name has changed. Ask Claude to refresh the AGY model list. The session goes back to the
+model it used before, shown as `model_reverted_to`, so the next message still works.
 
 ### `cwd is not a directory`
 The project path must be absolute and exist.
@@ -67,6 +68,12 @@ The project path must be absolute and exist.
 Ask Claude "What is AGY doing?". The last steps show whether AGY is still working,
 for example running a slow test suite. A tool call returns `RUNNING` after 10 minutes,
 but the review keeps going. To give up, ask Claude to end the session.
+
+### "has no turn in this agy-bridge process"
+Claude asked for the result of a turn that this bridge didn't run, usually because Claude
+Code restarted while AGY was working. The result is lost on the bridge's side, but AGY's
+conversation kept it: ask Claude to continue the session and have AGY repeat its last
+answer.
 
 ### `status: ERROR` with "agy exited with code N during the turn"
 AGY crashed or was killed. The result includes the last lines of AGY's error output.

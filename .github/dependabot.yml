@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Keep the CI workflow's actions current (e.g. when they move to a new Node runtime).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

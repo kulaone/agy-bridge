@@ -10,6 +10,7 @@ import os
 import shutil
 import time
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime, timedelta
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ from .session import Session, Turn, build_turn_payload, new_session_id, scratch_
 
 DEFAULT_WAIT = 600
 PROGRESS_POLL = 2.0
+IDLE_DAYS = 30  # after this, a session's scratch and backups are removed (it stays resumable)
 
 REVIEW_SCHEMA = json.loads(resources.files("agy_bridge").joinpath("data/review.schema.json")
                            .read_text())
@@ -33,6 +35,7 @@ SESSIONS: dict[str, Session] = {}
 async def lifespan(_server: MCPServer) -> AsyncIterator[None]:
     paths.ensure_dirs()
     _prune_orphan_scratch()
+    _prune_idle_sessions()
     try:
         yield
     finally:
@@ -56,6 +59,20 @@ def _prune_orphan_scratch() -> None:
     for d in paths.SCRATCH_DIR.glob("*"):
         if d.is_dir() and d.name not in known:
             shutil.rmtree(d, ignore_errors=True)
+
+
+def _prune_idle_sessions() -> None:
+    """Free the disk space of sessions unused for IDLE_DAYS: their scratch folder and
+    backups go, their record stays, so they can still be resumed."""
+    cutoff = datetime.now(UTC) - timedelta(days=IDLE_DAYS)
+    for sid, rec in registry.list_all().items():
+        try:
+            last_used = datetime.fromisoformat(rec.get("last_used") or "")
+        except ValueError:
+            continue
+        if last_used < cutoff and not _owned_elsewhere(rec):
+            shutil.rmtree(scratch_dir(sid), ignore_errors=True)
+            backup.remove(sid)
 
 
 def tool(fn):
@@ -119,6 +136,12 @@ async def _wait_turn(session: Session, turn: Turn, wait_seconds: float,
     if payload["status"] != "SUCCESS" and "model" in (payload.get("error") or "").lower():
         with contextlib.suppress(Exception):
             payload["available_models"] = [m["slug"] for m in await selfcheck.models()]
+        # Don't keep a model AGY rejected as the session's default for the next message.
+        model, effort = turn.previous_settings
+        if (model, effort) != (session.record.get("model"), session.record.get("effort")):
+            session.record.update(model=model, effort=effort)
+            registry.update(session.id, model=model, effort=effort)
+            payload["model_reverted_to"] = {"model": model, "effort": effort}
     if isinstance(payload.get("review"), dict):
         registry.update(session.id, last_verdict=payload["review"].get("verdict"))
     return payload
@@ -211,7 +234,17 @@ async def agy_wait(session_id: str, ctx: Context,
     result when done. Returns the last result again if no turn is running."""
     session = _session(session_id)
     if session.turn is None:
-        raise ValueError(f"session {session_id} has no turn in this bridge process")
+        owner = _owned_elsewhere(session.record)
+        if owner:
+            raise ValueError(
+                f"session {session_id} is running in another agy-bridge process (pid "
+                f"{owner}); collect its result from the Claude Code window that owns it.")
+        # Typically Claude Code (and with it this bridge) restarted while a turn ran.
+        raise ValueError(
+            f"session {session_id} has no turn in this agy-bridge process, so there is "
+            "nothing to wait for. If a turn was running when Claude Code or the bridge "
+            "restarted, its result was lost here, but AGY's conversation kept it: use "
+            "agy_say to ask AGY to repeat its last answer.")
     return await _wait_turn(session, session.turn, wait_seconds, ctx)
 
 

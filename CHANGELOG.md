@@ -6,6 +6,19 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Sessions unused for 30 days lose their scratch folder and backups at server start, to
+  save space. They stay resumable.
+- Dependabot keeps the CI workflow's actions up to date.
+
+### Changed
+
+- A model AGY rejects no longer becomes the session's default: the session goes back to
+  its previous model and effort, and the result says so (`model_reverted_to`).
+- `agy_wait` on a turn this bridge didn't run (for example after Claude Code restarted)
+  now explains what happened and how to get the answer back.
+
 ## [0.1.0] - 2026-11-06
 
 First public release.
