@@ -47,7 +47,9 @@ no effort level unless you give one, since the old level may not suit it.
 ## How a review goes
 
 1. **AGY reviews.** It reads the code, runs tests if it can, and may experiment in its
-   scratch folder. This takes minutes, often 1 to 5.
+   scratch folder. This takes minutes, often 1 to 5. `code-reviewer` acts as an
+   outside senior reviewer: besides bugs, it questions the approach ("why X rather
+   than Y?") and shows alternatives, but leaves the direction to you and Claude.
 2. **Claude responds.** For each finding, Claude either fixes it and re-runs the tests, or
    explains why it disagrees, with evidence. It also answers AGY's questions, and asks you
    any that only you can answer.

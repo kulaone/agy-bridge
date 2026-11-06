@@ -128,6 +128,13 @@ the user.
 Answer AGY's `questions_for_claude` in each `agy_say`. If only the user can answer
 one, ask the user and pass their answer on.
 
+`code-reviewer` questions the approach as well as the code: "why X rather than Y?",
+often with an alternative (findings with category `approach`). Answer on the merits:
+give the reason for your choice and its trade-offs against the alternative. Switch
+only if the alternative is actually better, not to end the discussion. The user
+decides the direction: tell them about any alternative worth weighing, with both
+sides, rather than adopting a big change silently.
+
 ## Discussion (architecture agents, or any `needs_discussion`)
 
 This is a design conversation, not a fix loop. Answer every question in
