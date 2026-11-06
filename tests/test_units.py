@@ -45,6 +45,10 @@ def test_claim_and_release(state: Path) -> None:
 def _fake_bridge() -> subprocess.Popen:
     """A process whose command line names agy_bridge, so it counts as a live bridge."""
     proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)", "agy_bridge"])
+    # Right after the fork, Linux can still show the parent's command line for a moment.
+    deadline = time.time() + 10
+    while not registry.is_live_bridge(proc.pid) and time.time() < deadline:
+        time.sleep(0.05)
     assert registry.is_live_bridge(proc.pid), (
         f"exit={proc.poll()} args={registry.command_line(proc.pid)} exe={sys.executable}")
     return proc
