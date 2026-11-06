@@ -6,18 +6,7 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- A second example agent, `design-reviewer`, with the `architecture-review` skill: an
-  outside architect that discusses designs, ADRs and plans with Claude, through ten
-  review lenses. `doctor` checks every shipped agent.
-
-### Changed
-
-- `code-reviewer` is now an outside senior reviewer. It questions the approach and
-  shows alternatives, raises each once, and accepts a reasoned answer.
-
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-11-06
 
 First public release.
 
@@ -50,7 +39,17 @@ First public release.
 ### Setup and logging
 
 - `agy-bridge install`, `uninstall` and `doctor`. Install is global or per project, and
-  never overwrites files you changed.
-- An example `code-reviewer` agent, its `code-review` skill, and the Claude skill `agy`.
+  never overwrites files you changed. `doctor` checks every shipped agent.
+- Two example AGY agents:
+  - `code-reviewer`, with the `code-review` skill: an outside senior reviewer of code
+    changes. It questions the approach and shows alternatives, raises each once, and
+    accepts a reasoned answer.
+  - `design-reviewer`, with the `architecture-review` skill: an outside architect that
+    discusses designs, ADRs and plans with Claude through ten review lenses.
+- The Claude skill `agy`, which teaches Claude when to ask for a review and how to run
+  the review loop.
 - Transcript logging, off by default (`AGY_BRIDGE_LOG=1`).
 - Tested with AGY 1.5.1 and 1.5.2.
+
+[Unreleased]: https://github.com/kulaone/agy-bridge/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/kulaone/agy-bridge/releases/tag/v0.1.0
