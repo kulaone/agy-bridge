@@ -1,12 +1,13 @@
 # agy-bridge
 
 Get a second opinion on Claude Code's work from a Google Antigravity (AGY) agent, and
-let the two of them talk it through.
+let the two of them talk it through: to review what Claude made, or to think a task
+through before Claude starts it.
 
 agy-bridge is an [MCP](https://modelcontextprotocol.io) server. It gives Claude Code
-tools to start an AGY reviewer agent, send it work, read its review, reply with fixes or
-counter-arguments, and keep the conversation going over several turns, even across
-Claude Code sessions.
+tools to start an AGY agent, send it work or a problem, read its answer, reply with
+fixes, counter-arguments or answers, and keep the conversation going over several
+turns, even across Claude Code sessions.
 
 > **Not affiliated with Google or Anthropic.** agy-bridge is an independent open-source
 > project. Antigravity and Gemini are Google products; Claude and Claude Code are
@@ -38,6 +39,33 @@ Claude fixes what it agrees with, argues with what it doesn't, answers the quest
 sends the new diff back. AGY re-checks. When they agree, or after a few rounds, Claude
 reports the outcome to you, including any point they still disagree on.
 
+It isn't only for code. Before starting something new, you might ask:
+
+> Before you draft my conference talk on agy-bridge, brainstorm it with AGY's thinking
+> partner.
+
+AGY's `thinking-partner` picks a technique (here, writing the announcement first, and a
+pre-mortem) and checks where Claude's claims come from before building on them:
+
+```json
+{
+  "verdict": "needs_discussion",
+  "reframed_problem": "Show developers who already use Claude Code why a second, different model makes their reviews better.",
+  "assumptions": [
+    {"statement": "The audience knows what MCP is", "source": "inferred",
+     "risk": "If they don't, the first ten minutes are lost on setup."}
+  ],
+  "options": [
+    {"idea": "Live demo of one bug caught by AGY that Claude missed",
+     "gains": "Memorable, concrete", "costs": "Demo risk; needs a reliable example"}
+  ],
+  "questions_for_claude": ["(user) Who is the audience: beginners or MCP users?"]
+}
+```
+
+Claude passes your questions to you, discusses the options with AGY, and brings you a
+short list to choose from before writing anything.
+
 ## Requirements
 
 - **AGY CLI**, installed and signed in. agy-bridge finds it at `~/.gemini/bin/agy`, on
@@ -61,8 +89,8 @@ Restart Claude Code, then check the setup:
 uv run agy-bridge doctor
 ```
 
-`install` copies two AGY agents with their skills, plus a Claude skill, and registers the
-server:
+`install` copies three AGY agents with their skills, plus a Claude skill, and registers
+the server:
 
 | What | Where |
 |---|---|
@@ -70,6 +98,8 @@ server:
 | Its AGY skill, `code-review` | `~/.gemini/config/skills/code-review/` |
 | AGY agent `design-reviewer`: an outside architect for designs, ADRs and plans | `~/.gemini/config/agents/design-reviewer.md` |
 | Its AGY skill, `architecture-review`, with ten review lenses | `~/.gemini/config/skills/architecture-review/` |
+| AGY agent `thinking-partner`: brainstorming and planning before a task, and review of any kind of work | `~/.gemini/config/agents/thinking-partner.md` |
+| Its AGY skill, `thinking-techniques`, with brainstorming and review techniques | `~/.gemini/config/skills/thinking-techniques/` |
 | The Claude skill that teaches Claude the review loop | `~/.claude/skills/agy/SKILL.md` |
 | The MCP server, named `agy` | Claude Code's user config |
 
@@ -84,6 +114,8 @@ Ask Claude Code in your own words:
 - "Review my uncommitted changes with AGY."
 - "Run AGY with the code-review skill on this branch against main, using Argon high."
 - "Ask the AGY design reviewer about docs/design/sync.md before we build it."
+- "Before we start, brainstorm with AGY how to onboard new customers. Go wild."
+- "Have AGY's thinking partner review the launch email draft."
 - "What is AGY doing right now?"
 - "Resume yesterday's AGY review of this project."
 

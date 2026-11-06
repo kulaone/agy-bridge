@@ -94,12 +94,21 @@ effort level by default, on a model from your AGY's list; if no model is passed,
 its own default. The model list comes from `agy models` and is cached for a day; ask Claude
 to "refresh the AGY model list" after AGY adds models.
 
-## The review format
+## Answer formats
 
-By default AGY must answer in the review schema: `verdict`, `summary`, `findings` and
-`questions_for_claude`. The full schema is in
-[`src/agy_bridge/data/review.schema.json`](../src/agy_bridge/data/review.schema.json).
-`agy_start` takes a `schema` argument to use a different one for a session. If AGY
+AGY answers in one of two formats, chosen per session with `format`, and changeable
+mid-session:
+
+- **`review`** (the default): `verdict`, `summary`, `findings` and
+  `questions_for_claude`. See
+  [`review.schema.json`](../src/agy_bridge/data/review.schema.json).
+- **`brainstorm`**, for planning and ideas: `verdict` (`needs_discussion` or `ready`),
+  `summary`, `stage`, `techniques_used`, `reframed_problem`, `assumptions` (each with
+  its source), `options` (idea, gains, costs), `recommendation`, `next_step` and
+  `questions_for_claude`. See
+  [`brainstorm.schema.json`](../src/agy_bridge/data/brainstorm.schema.json).
+
+`agy_start` also takes a `schema` argument for a custom format. If AGY
 answers in plain text instead, agy-bridge takes the first JSON object from the text and
 marks the result `review_parsed_from_text`.
 
@@ -107,13 +116,43 @@ marks the result `review_parsed_from_text`.
 
 Edit the installed agents and skills to suit you. `install` won't overwrite your edits:
 
-- `~/.gemini/config/agents/code-reviewer.md` and `design-reviewer.md`: each reviewer's
-  role and ground rules, and the tools it may use.
+- `~/.gemini/config/agents/code-reviewer.md`, `design-reviewer.md` and
+  `thinking-partner.md`: each agent's role and ground rules, and the tools it may use.
 - `~/.gemini/config/skills/code-review/SKILL.md`: how to review code, the checklist, and
   how to grade severity.
 - `~/.gemini/config/skills/architecture-review/`: how to review a design (`SKILL.md`)
   and the ten review lenses (`references/principles.md`).
+- `~/.gemini/config/skills/thinking-techniques/`: how to brainstorm and review, the
+  assumption guard, and how to choose a technique (`SKILL.md`), plus the techniques
+  themselves (`references/techniques.md`). Add the techniques your team likes.
 - `~/.claude/skills/agy/SKILL.md`: how Claude runs the review loop: how many rounds,
   when to stop arguing, what to report.
 
 To add more agents, see [Writing your own agents](writing-agents.md).
+
+### Other skills and agents AGY can use
+
+An agent's `skills:` list names the skills it is told to follow, but AGY doesn't stop
+there. **It can also read and follow any other skill it can see:**
+
+- your global skills, in `~/.gemini/config/skills/`;
+- the reviewed project's own skills, in `.agents/skills/` in the project or any folder
+  above it.
+
+We've seen both in testing:
+- A shipped agent read an unrelated skill from the user's global folder.
+- A project skill saying "end every review summary with these words" was followed,
+  although nobody mentioned it.
+
+The same goes for agents. A project's `.agents/agents/code-reviewer.md` replaces the
+shipped `code-reviewer` there, because AGY uses the nearest agent with a given name.
+
+What this means for you:
+
+- **Your own skills shape the shipped agents on your machine**, for better or worse. If
+  reviews follow instructions you didn't expect, look at what's installed.
+- **Project skills are a feature.** A project can teach every reviewer its conventions.
+- **They are also a way in for an untrusted project.** See [SECURITY.md](../SECURITY.md).
+- The `looked_at` list in each result shows which files AGY read, skill files included.
+  When a project's own agent is used instead of the global one, the first result says
+  so in `notes.agent_file`.

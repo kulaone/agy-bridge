@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "required": ["verdict", "summary", "stage", "techniques_used", "reframed_problem",
+               "assumptions", "options", "recommendation", "next_step",
+               "questions_for_claude"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["needs_discussion", "ready"]},
+    "summary": {"type": "string"},
+    "stage": {"type": "string", "enum": ["explore", "generate", "choose", "plan"]},
+    "techniques_used": {"type": "array", "items": {
+      "type": "object",
+      "required": ["technique", "why"],
+      "properties": {
+        "technique": {"type": "string"},
+        "why": {"type": "string"}
+      }}},
+    "reframed_problem": {"type": "string"},
+    "assumptions": {"type": "array", "items": {
+      "type": "object",
+      "required": ["statement", "source"],
+      "properties": {
+        "statement": {"type": "string"},
+        "source": {"type": "string", "enum": ["user", "evidence", "inferred", "unknown"]},
+        "risk": {"type": "string"}
+      }}},
+    "options": {"type": "array", "items": {
+      "type": "object",
+      "required": ["idea", "gains", "costs"],
+      "properties": {
+        "idea": {"type": "string"},
+        "gains": {"type": "string"},
+        "costs": {"type": "string"}
+      }}},
+    "recommendation": {"type": "string"},
+    "next_step": {"type": "string"},
+    "questions_for_claude": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -8,6 +8,19 @@ All notable changes are listed here. The format follows
 
 ### Added
 
+- A third example agent, `thinking-partner`, with the `thinking-techniques` skill: a
+  thinking partner for any kind of work. It brainstorms and plans before a task and
+  reviews after it, choosing a fitting technique (Socratic questioning, pre-mortem, red
+  team and more), and guards against hidden assumptions by asking where each claim comes
+  from.
+- Docs: AGY can also follow other skills it can see (global and the project's own),
+  and a project's own agent replaces a shipped one of the same name. SECURITY.md covers
+  what that means for untrusted projects, and the Claude skill points out unexpected
+  skill files in `looked_at`.
+- A `brainstorm` answer format (`format` on `agy_start` and `agy_say`), with options,
+  assumptions and their sources, a recommendation and a next step. Switching format
+  mid-session keeps the conversation.
+
 - Sessions unused for 30 days lose their scratch folder and backups at server start, to
   save space. They stay resumable.
 - Dependabot keeps the CI workflow's actions up to date.

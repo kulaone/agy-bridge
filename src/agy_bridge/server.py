@@ -25,8 +25,24 @@ DEFAULT_WAIT = 600
 PROGRESS_POLL = 2.0
 IDLE_DAYS = 30  # after this, a session's scratch and backups are removed (it stays resumable)
 
-REVIEW_SCHEMA = json.loads(resources.files("agy_bridge").joinpath("data/review.schema.json")
-                           .read_text())
+def _load_schema(name: str) -> dict[str, Any]:
+    return json.loads(resources.files("agy_bridge").joinpath(f"data/{name}.schema.json")
+                      .read_text())
+
+
+# The answer formats Claude can ask for; `schema` replaces them with a custom one.
+FORMATS = {"review": _load_schema("review"), "brainstorm": _load_schema("brainstorm")}
+REVIEW_SCHEMA = FORMATS["review"]
+
+
+def _answer_schema(format: str | None, schema: dict[str, Any] | None) -> dict[str, Any] | None:
+    if schema is not None:
+        return schema
+    if format is None:
+        return None
+    if format not in FORMATS:
+        raise ValueError(f"unknown format {format!r}: use one of {sorted(FORMATS)}")
+    return FORMATS[format]
 
 SESSIONS: dict[str, Session] = {}
 
@@ -172,7 +188,7 @@ async def agy_list_agents(refresh_models: bool = False) -> dict[str, Any]:
 @tool
 async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
                     model: str | None = None, effort: str | None = None,
-                    schema: dict[str, Any] | None = None,
+                    format: str = "review", schema: dict[str, Any] | None = None,
                     wait_seconds: float = DEFAULT_WAIT) -> dict[str, Any]:
     """Open a new AGY review session and send the first message.
 
@@ -180,8 +196,12 @@ async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
     cwd: absolute path of the project to review (AGY runs there).
     message: what to review and why: diff or file/doc paths, intent, how to run tests.
     model / effort: optional; omit to use AGY's default. See agy_list_agents.
-    schema: optional JSON schema for the answer; defaults to the review schema
-      (verdict, summary, findings, questions_for_claude).
+    format: the answer format. "review" (default): verdict, summary, findings,
+      questions_for_claude. "brainstorm", for planning and ideas: verdict
+      (needs_discussion | ready), summary, stage, techniques_used, reframed_problem,
+      assumptions (with their source), options (idea, gains, costs), recommendation,
+      next_step, questions_for_claude.
+    schema: optional custom JSON schema for the answer, instead of a format.
     wait_seconds: how long to wait for the answer before returning status RUNNING
       (the turn keeps going; collect it with agy_wait).
     Returns the session_id, the review, and notes (denied actions, files AGY changed).
@@ -189,12 +209,14 @@ async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
     project = Path(cwd).expanduser().resolve()
     if not project.is_dir():
         raise ValueError(f"cwd is not a directory: {cwd}")
+    answer_schema = _answer_schema(format or "review", schema)
     check = await selfcheck.check_agent(agent, str(project))
 
     session_id = new_session_id()
     record = {
         "agent": agent, "cwd": str(project), "model": model, "effort": effort,
-        "schema": schema or REVIEW_SCHEMA, "conversation_id": None,
+        "schema": answer_schema, "format": "custom" if schema else format or "review",
+        "conversation_id": None,
         "created": registry.now_iso(), "last_used": registry.now_iso(), "turns": 0,
         "agent_file": check.get("agent_file"),
     }
@@ -205,20 +227,33 @@ async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
     payload = await _wait_turn(session, turn, wait_seconds, ctx)
     if check.get("version_warning"):
         payload.setdefault("notes", {})["agy_version"] = check["version_warning"]
+    agent_file = check.get("agent_file")
+    if agent_file and paths.GLOBAL_AGENTS_DIR not in Path(agent_file).parents:
+        payload.setdefault("notes", {})["agent_file"] = (
+            f"{agent_file}: AGY is using this local agent, not the global "
+            f"'{agent}'. It defines how this review works; check it if you don't trust "
+            "the project.")
     return payload
 
 
 @tool
 async def agy_say(session_id: str, message: str, ctx: Context,
                   model: str | None = None, effort: str | None = None,
+                  format: str | None = None,
                   wait_seconds: float = DEFAULT_WAIT) -> dict[str, Any]:
     """Send the next message in an AGY session: fixes made (with the new diff), answers to
     AGY's questions, or arguments against a finding. Resumes the conversation automatically
     if its process has ended (e.g. in a later Claude session). model/effort default to the
     session's previous choice, except that a new model starts with no effort unless one is
-    given. Changing them restarts the process on the same conversation.
+    given. format ("review" or "brainstorm") switches the answer format, e.g. from
+    brainstorming a plan to reviewing the result. Changing any of them restarts the
+    process on the same conversation.
     """
     session = _session(session_id)
+    new_schema = _answer_schema(format, None)
+    if new_schema is not None and new_schema != session.record.get("schema"):
+        session.record.update(schema=new_schema, format=format)
+        registry.update(session.id, schema=new_schema, format=format)
     previous_model = session.record.get("model")
     if effort is None and (model is None or model == previous_model):
         effort = session.record.get("effort")  # a new model doesn't inherit the old effort
@@ -291,7 +326,8 @@ async def agy_resume(session_id: str | None = None, conversation_id: str | None 
             session_id = new_session_id()
             registry.put(session_id, {
                 "agent": agent, "cwd": str(project), "model": None,
-                "effort": None, "schema": REVIEW_SCHEMA, "conversation_id": conversation_id,
+                "effort": None, "schema": REVIEW_SCHEMA, "format": "review",
+                "conversation_id": conversation_id,
                 "created": registry.now_iso(), "last_used": registry.now_iso(), "turns": 0,
                 "agent_file": check.get("agent_file")})
     session = _session(session_id)
@@ -310,6 +346,7 @@ async def agy_sessions(cwd: str | None = None, limit: int = 20) -> list[dict[str
         live = sid in SESSIONS and SESSIONS[sid].alive
         rows.append({"session_id": sid, "agent": rec.get("agent"), "cwd": rec.get("cwd"),
                      "model": rec.get("model"), "effort": rec.get("effort"),
+                     "format": rec.get("format", "review"),
                      "turns": rec.get("turns", 0), "last_verdict": rec.get("last_verdict"),
                      "created": rec.get("created"), "last_used": rec.get("last_used"),
                      "conversation_id": rec.get("conversation_id"),

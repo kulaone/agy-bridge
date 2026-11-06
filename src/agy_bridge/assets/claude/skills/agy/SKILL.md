@@ -1,13 +1,14 @@
 ---
 name: agy
-description: "Get an independent review from Google Antigravity (AGY) reviewer agents and discuss it with them, through the mcp__agy__* tools. Use when the user says 'run AGY', 'AGY review', 'ask AGY', 'get a review from Antigravity/Gemini', 'ask the AGY architect', 'AGY design review', or 'run AGY with the code-review skill' (or any other AGY agent or skill); when a plan or task says to get an AGY review; and to resume or check on an earlier AGY review session."
+description: "Get an independent review from Google Antigravity (AGY) reviewer agents and discuss it with them, through the mcp__agy__* tools. Use when the user says 'run AGY', 'AGY review', 'ask AGY', 'get a review from Antigravity/Gemini', 'ask the AGY architect', 'AGY design review', 'brainstorm with AGY', 'ask AGY's thinking partner', 'get ideas from AGY before we start', or 'run AGY with the code-review skill' (or any other AGY agent or skill); when a plan or task says to get an AGY review or brainstorm; and to resume or check on an earlier AGY session."
 ---
 
 # AGY reviews
 
-AGY (Google Antigravity) agents act as an independent second reviewer. You send
-them work, they review it and may question you, and you talk it through over
-several turns. AGY may read the whole project and run tests, but it must not
+AGY (Google Antigravity) agents act as an independent second reviewer, and as a
+thinking partner before you start. You send them work or a problem, they review it
+or brainstorm it with you and may question you, and you talk it through over several
+turns. AGY may read the whole project and run tests, but it must not
 edit the files under review. It works in its own scratch folder instead.
 
 Tools: `mcp__agy__agy_list_agents`, `agy_start`, `agy_say`, `agy_wait`,
@@ -23,17 +24,23 @@ Tools: `mcp__agy__agy_list_agents`, `agy_start`, `agy_say`, `agy_wait`,
 
 ## Pick the agent
 
-agy-bridge installs two agents: `code-reviewer` for code changes, diffs and
-implementations, and `design-reviewer` for designs, architecture docs, ADRs and
-technical plans. Users may add their own, such as a docs reviewer. Call
-`agy_list_agents` to see what is installed, and pick by name and purpose:
+agy-bridge installs three agents:
+- `code-reviewer` for code changes, diffs and implementations;
+- `design-reviewer` for designs, architecture docs, ADRs and technical plans;
+- `thinking-partner` for any kind of work: brainstorming and planning before a task
+  starts, and reviewing anything that isn't code or a system design.
+
+Users may add their own. Call `agy_list_agents` to see what is installed, and pick by
+name and purpose:
 
 - The user named an agent: use it, after checking it exists.
 - Code: `code-reviewer`.
 - Designs, architecture, ADRs, technical plans: `design-reviewer`, or another
   installed architecture agent if the user prefers it.
-- Other docs, specs or prompts: an installed agent made for them, if there is one.
-  Otherwise ask the user which agent should review them.
+- Brainstorming, planning, choosing between ideas, or "what should we do about X":
+  `thinking-partner` with `format: "brainstorm"`.
+- Other finished work (docs, writing, plans, prompts, decisions): `thinking-partner`
+  (default review format), or a more specific installed agent.
 
 A project may define its own agents in `.agents/agents/`; AGY uses the nearest one
 of a given name automatically.
@@ -71,9 +78,20 @@ budget, deadlines), the alternatives already considered, and what you want from 
 review.
 
 **Other** (docs, specs, configs, prompts): the artefact path, its purpose and
-audience, and what "good" means for it.
+audience, and what "good" means for it. Say where each of those comes from: quote the
+user, name the document, or say it's your own inference. `thinking-partner` will ask
+otherwise.
 
-Then call `agy_start(agent, cwd=<absolute project root>, message, model?, effort?)`.
+**Brainstorm** (`thinking-partner`, `format: "brainstorm"`):
+- the goal, and what the user actually asked, quoted where it matters;
+- what is known, each point marked as said by the user, shown by evidence (a file,
+  data), or your own inference;
+- constraints (time, budget, audience, tools) and what's already been tried or ruled out;
+- what you want: understand the problem, ideas, help choosing, or a plan;
+- "go wild" if the user asked for bold ideas.
+
+Then call `agy_start(agent, cwd=<absolute project root>, message, model?, effort?,
+format?)`. `cwd` is the project, or any working folder for non-code work.
 Tell the user it has started. Reviews take minutes.
 
 ## Waiting
@@ -90,6 +108,11 @@ Tell the user it has started. Reviews take minutes.
 - `review`: `verdict` (`approve` | `changes_requested` | `needs_discussion`),
   `summary`, `findings[]` (`severity`, `category`, `location`, `issue`,
   `recommendation`) and `questions_for_claude[]`.
+- With `format: "brainstorm"` the same `review` key holds: `verdict`
+  (`needs_discussion` | `ready`), `summary`, `stage`, `techniques_used[]`,
+  `reframed_problem`, `assumptions[]` (`statement`, `source`: `user` | `evidence` |
+  `inferred` | `unknown`, `risk`), `options[]` (`idea`, `gains`, `costs`),
+  `recommendation`, `next_step` and `questions_for_claude[]`.
 - `notes.tree_changed.files`: AGY changed project files, which it must not do.
   Tell the user exactly which files, show the change (`git diff -- <file>`), and
   offer to revert it. Don't revert silently.
@@ -104,8 +127,13 @@ Tell the user it has started. Reviews take minutes.
 - `notes.other_reviews_running`: other AGY reviews of the same project were working
   during this turn, so `tree_changed` may be theirs (or your own edits). Check before
   blaming this agent.
+- `notes.agent_file`: AGY is using the project's own agent instead of the global one.
+  Mention it to the user, since that file defines the review.
 - `notes.agy_version`: the installed AGY version is untested with agy-bridge. Mention
   it once to the user, and keep it in mind if anything misbehaves.
+- `looked_at`: the files AGY read. If it read skill or agent files you didn't expect
+  (in the project's `.agents/` or the user's `~/.gemini/config/`), tell the user: those
+  can change how AGY reviews. Be especially careful with projects the user doesn't own.
 - `notes.tree_changed.likely_tool_output`: caches or build output from test runs.
   Mention it only if it matters, e.g. a new untracked file that isn't ignored.
 - `notes.tree_changed.git`: HEAD, branch, stash or worktree changed. Treat it like changed files.
@@ -153,6 +181,27 @@ Handle the `findings` in each round too. Update the document for the points you
 agree with, and tell AGY what changed (sections, or a short diff). Push back, with
 reasons, on those you don't. AGY doesn't write documents; you do. If you don't
 update the document, AGY will report the same findings again.
+
+## Brainstorm (`thinking-partner`)
+
+A conversation to think before acting. AGY brings techniques, ideas and an
+**assumption guard**; you bring knowledge of the project and the user.
+
+- **Be honest about sources.** When AGY asks where something comes from, say whether
+  the user said it (quote it), evidence shows it (name it), or you inferred it. Never
+  present your inference as the user's wish. That is exactly what this agent is there
+  to catch.
+- **Pass the user's questions on.** Questions marked "(user)" and assumptions marked
+  `inferred` that matter go to the user; don't answer them by guessing.
+- **Engage with the ideas.** Say which options you find strong or weak and why, add
+  your own, and correct reframings that miss the point.
+- **Stop when `verdict` is `ready`**, or when the open points need the user. Then
+  bring the user the reframed problem, the main options with their trade-offs, AGY's
+  recommendation and yours, and the assumptions still open. Let the user choose
+  before you start the work. Don't treat the brainstorm as a decision.
+- **Review the result later in the same session:** after the work is done,
+  `agy_say(session_id, …, format: "review")`. AGY remembers the plan and the reasons
+  behind it.
 
 ## Report to the user
 

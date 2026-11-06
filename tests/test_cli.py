@@ -35,12 +35,14 @@ def test_install_fills_in_paths_and_registers(env: dict) -> None:
     assert registered(Path(env["HOME"]) / ".claude.json") == CMD.split()
 
 
-def test_install_ships_the_design_reviewer(env: dict) -> None:
+def test_install_ships_every_agent_with_its_skill(env: dict) -> None:
     run_cli(env, "install", "--server-command", CMD)
     gemini = Path(env["HOME"]) / ".gemini/config"
-    skill = gemini / "skills/architecture-review"
-    assert (skill / "SKILL.md").exists() and (skill / "references/principles.md").exists()
-    assert f"- {skill}\n" in (gemini / "agents/design-reviewer.md").read_text()
+    for agent, skill, extra in (("design-reviewer", "architecture-review", "principles.md"),
+                                ("thinking-partner", "thinking-techniques", "techniques.md")):
+        folder = gemini / "skills" / skill
+        assert (folder / "SKILL.md").exists() and (folder / "references" / extra).exists()
+        assert f"- {folder}\n" in (gemini / "agents" / f"{agent}.md").read_text()
 
 
 def test_reinstall_is_a_no_op(env: dict) -> None:
@@ -136,7 +138,7 @@ def test_doctor_all_good(env: dict, tmp_path: Path) -> None:
     out = run_cli(env, "doctor", cwd=tmp_path)
     assert out.returncode == 0, out.stdout
     assert "All good." in out.stdout and "logging is off" in out.stdout
-    for name in ("code-reviewer", "design-reviewer"):
+    for name in ("code-reviewer", "design-reviewer", "thinking-partner"):
         assert f"agent '{name}'" in out.stdout
 
 

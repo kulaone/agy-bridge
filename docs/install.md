@@ -56,8 +56,8 @@ the same way.
 
 | Step | Global install (default) | `--project DIR` |
 |---|---|---|
-| AGY agents `code-reviewer`, `design-reviewer` | `~/.gemini/config/agents/` | `DIR/.agents/agents/` |
-| AGY skills `code-review`, `architecture-review` | `~/.gemini/config/skills/` | `DIR/.agents/skills/` |
+| AGY agents `code-reviewer`, `design-reviewer`, `thinking-partner` | `~/.gemini/config/agents/` | `DIR/.agents/agents/` |
+| AGY skills `code-review`, `architecture-review`, `thinking-techniques` | `~/.gemini/config/skills/` | `DIR/.agents/skills/` |
 | Claude skill `agy` | `~/.claude/skills/` | `DIR/.claude/skills/` |
 | MCP server `agy` | Claude Code user scope (`~/.claude.json`) | project scope (`DIR/.mcp.json`) |
 

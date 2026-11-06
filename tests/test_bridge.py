@@ -180,6 +180,30 @@ def test_new_model_starts_without_the_old_effort(installed: dict, repo: Path) ->
     assert "model=gemini-fake-flash-low; effort=None" in other["review"]["summary"]
 
 
+def test_brainstorm_format_and_switching_to_review(installed: dict, repo: Path) -> None:
+    async def go():
+        async with bridge(installed) as b:
+            first = await start(b, repo, format="brainstorm")
+            sid = first["session_id"]
+            same = await b.call("agy_say", session_id=sid, message="More ideas.")
+            review = await b.call("agy_say", session_id=sid, message="Review it.",
+                                  format="review")
+            rows = await b.call("agy_sessions", cwd=str(repo))
+            bad = await b.call("agy_say", session_id=sid, message="x", format="poem")
+            return first, same, review, rows, bad
+
+    first, same, review, rows, bad = run(go())
+    argvs = fake_argv(installed)
+    assert len(argvs) == 2  # the format switch restarted AGY, nothing else did
+    schemas = [json.loads(a[a.index("--json-schema") + 1]) for a in argvs]
+    assert "reframed_problem" in schemas[0]["properties"]
+    assert "findings" in schemas[1]["properties"]
+    assert argvs[1][argvs[1].index("--conversation") + 1] == first["conversation_id"]
+    assert "message 3 of" in review["review"]["summary"]
+    assert rows[0]["format"] == "review"
+    assert "unknown format 'poem'" in bad["error"]
+
+
 def test_resume_from_a_new_bridge(installed: dict, repo: Path) -> None:
     async def first_bridge():
         async with bridge(installed) as b:
@@ -279,6 +303,21 @@ def test_untested_agy_version_is_noted(installed: dict, repo: Path) -> None:
     listing, out = run(go())
     assert "9.9.9 has not been tested" in listing["version_warning"]
     assert "9.9.9 has not been tested" in out["notes"]["agy_version"]
+
+
+def test_a_project_agent_is_pointed_out(installed: dict, repo: Path) -> None:
+    global_agent = Path(installed["HOME"]) / ".gemini/config/agents/code-reviewer.md"
+    local = repo / ".agents" / "agents"
+    local.mkdir(parents=True)
+    (local / "code-reviewer.md").write_text(global_agent.read_text())
+
+    async def go():
+        async with bridge(installed) as b:
+            return await start(b, repo)
+
+    out = run(go())
+    assert "AGY is using this local agent" in out["notes"]["agent_file"]
+    assert str(local / "code-reviewer.md") in out["notes"]["agent_file"]
 
 
 def test_errors_reach_claude_with_their_message(installed: dict, repo: Path) -> None:

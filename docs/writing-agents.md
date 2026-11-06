@@ -1,7 +1,7 @@
 # Writing your own agents
 
-agy-bridge works with any AGY agent, not only the `code-reviewer` and `design-reviewer`
-it installs. You might add, for example:
+agy-bridge works with any AGY agent, not only the `code-reviewer`, `design-reviewer`
+and `thinking-partner` it installs. You might add, for example:
 
 - a reviewer for docs, prompts or infrastructure config;
 - a security reviewer with its own checklist.
@@ -90,6 +90,14 @@ answer.
 With `model: inherit`, the model chosen through agy-bridge applies, or AGY's default if
 none was chosen. A fixed model in the agent file would take that choice away from you
 and from Claude.
+
+## Your agent is not alone
+
+The `skills:` list is what your agent is told to follow, but AGY can also read and
+follow any other skill it can see: your global skills and the project's own
+`.agents/skills/`. Write skills with clear descriptions of when they apply, so they don't
+pull in unrelated reviews. See
+[Other skills and agents AGY can use](configuration.md#other-skills-and-agents-agy-can-use).
 
 ## The answer format
 

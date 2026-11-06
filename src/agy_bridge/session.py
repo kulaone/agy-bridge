@@ -97,7 +97,7 @@ class Session:
         self.id = session_id
         self.record = record
         self.proc: asyncio.subprocess.Process | None = None
-        self.proc_args: tuple[str | None, str | None] = (None, None)  # (model, effort)
+        self.proc_args: tuple[Any, ...] = (None, None, None)  # model, effort, schema
         self.turn: Turn | None = None
         self.recent = collections.deque(maxlen=20)
         self.stderr_tail = collections.deque(maxlen=50)
@@ -145,7 +145,7 @@ class Session:
             *args, cwd=rec["cwd"], limit=STREAM_LIMIT,
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
-        self.proc_args = (model, effort)
+        self.proc_args = (model, effort, rec["schema"])
         self._reader = asyncio.create_task(self._read_stdout(self.proc))
         self._err_reader = asyncio.create_task(self._read_stderr(self.proc))
 
@@ -177,8 +177,8 @@ class Session:
         registry.release(self.id, os.getpid())
 
     async def ensure_process(self, model: str | None, effort: str | None) -> None:
-        """Start the process, or restart it if the requested model/effort changed."""
-        if self.alive and self.proc_args == (model, effort):
+        """Start the process, or restart it if the model, effort or answer schema changed."""
+        if self.alive and self.proc_args == (model, effort, self.record["schema"]):
             return
         if self.alive:
             await self.stop_process()

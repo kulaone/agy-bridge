@@ -180,9 +180,40 @@ It works as an outside architect, and it is a discussion rather than a fix loop:
 The lenses are in `~/.gemini/config/skills/architecture-review/references/principles.md`.
 Edit them to suit your team.
 
+## Brainstorming and planning
+
+`thinking-partner` is for thinking before you start, about any kind of work: code, a
+talk, a product idea, a decision, a piece of writing. It is also a reviewer for finished
+work that isn't code or a system design.
+
+- "Before we start, brainstorm with AGY how to structure the onboarding guide."
+- "Ask AGY's thinking partner to help me choose between these three names."
+- "Have AGY's thinking partner review the launch email draft."
+- Add "go wild" for bold, unconventional ideas.
+
+How it works:
+
+- **It picks a technique for the moment**, and says which and why. Examples: Socratic
+  questions when the problem is vague; borrowing from other fields when the ideas are
+  too similar; a pre-mortem before committing to a plan; a red team when reviewing.
+  The full list is in
+  `~/.gemini/config/skills/thinking-techniques/references/techniques.md`.
+- **It guards against assumptions.** For every important claim, it asks Claude where it
+  came from: you said it, evidence shows it, or Claude inferred it. Inferred claims are
+  kept apart as assumptions, and the ones only you can confirm come to you.
+- **It answers in a brainstorm format:**
+  - the problem as it now understands it;
+  - the assumptions and their sources;
+  - real options, each with what it gains and costs;
+  - a recommendation and a next step.
+- **It ends when a direction is clear** (`ready`). Claude then brings you the options
+  and recommendation to choose from. A brainstorm doesn't decide for you.
+- **After the work is done, Claude can ask the same session to review it.** AGY still
+  remembers the plan and the reasons behind it.
+
 ## Other kinds of review
 
-You can add your own agents, for example a reviewer for docs, prompts or infrastructure
+You can add your own agents, for example a reviewer for prompts or infrastructure
 config. See [Writing your own agents](writing-agents.md). Claude picks an agent by name
 and purpose from those installed, and asks you if none fits.
 
@@ -193,8 +224,8 @@ Claude calls these; you rarely need the details.
 | Tool | Purpose |
 |---|---|
 | `agy_list_agents(refresh_models?)` | Installed agents, model slugs, effort levels, AGY version. |
-| `agy_start(agent, cwd, message, model?, effort?, schema?, wait_seconds?)` | Open a session and send the first message. `cwd` is the absolute project root. `schema` replaces the default review schema. |
-| `agy_say(session_id, message, model?, effort?, wait_seconds?)` | Send the next message. Resumes a stopped session. Changing model or effort restarts AGY on the same conversation. |
+| `agy_start(agent, cwd, message, model?, effort?, format?, schema?, wait_seconds?)` | Open a session and send the first message. `cwd` is the absolute project (or working) folder. `format` is `review` (default) or `brainstorm`; `schema` is a custom answer format instead. |
+| `agy_say(session_id, message, model?, effort?, format?, wait_seconds?)` | Send the next message. Resumes a stopped session. Changing model, effort or format restarts AGY on the same conversation. |
 | `agy_wait(session_id, wait_seconds?)` | Keep waiting for a turn that returned `RUNNING`. |
 | `agy_status(session_id)` | Idle or working, the turn number, elapsed time, last steps. |
 | `agy_sessions(cwd?, limit?)` | Stored sessions, most recent first. |

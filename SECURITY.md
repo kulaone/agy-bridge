@@ -19,13 +19,16 @@ trade-off and limits the damage as follows:
 | Uncommitted work is lost, e.g. by `git reset --hard` or `git clean` | Before each turn the bridge backs up tracked changes as a patch, plus copies of untracked and newly added files. When a turn changes the project, its result carries a restore recipe. |
 | AGY approves its own risky action | agy-bridge never passes `--dangerously-skip-permissions`. Anything the session's settings don't allow is denied. |
 | Text in the reviewed code tries to steer AGY or Claude (prompt injection) | The Claude skill treats AGY's output as advice to verify, never as instructions. This reduces the risk; it can't remove it. |
+| The reviewed project steers the reviewer through its own skills (`.agents/skills/`) or replaces it with its own agent of the same name (`.agents/agents/`) | Nothing in agy-bridge prevents it: AGY uses them by design. Each result's `looked_at` shows the files AGY read, and `agy_start` notes when a project's own agent is used instead of the global one (`notes.agent_file`). Check `.agents/` before reviewing a project you don't trust. |
 
 What this does **not** protect against:
 
 - shell commands that affect things outside the project, such as the network, other
   folders, or your accounts;
 - changes to ignored files, or edits that keep a file's size and mtime;
-- untracked files over 10 MB, or beyond 100 MB per turn, which are not backed up.
+- untracked files over 10 MB, or beyond 100 MB per turn, which are not backed up;
+- a reviewed project's own skills or agents changing how AGY reviews it, for example
+  a skill telling it to approve everything.
 
 For code where that matters:
 

@@ -90,7 +90,7 @@ and after every AGY update.
 ```
 src/agy_bridge/     the server and CLI (see docs/architecture.md)
   assets/           files `install` copies: example agents, their skills, the Claude skill
-  data/             the default review schema
+  data/             the answer formats (review and brainstorm schemas)
 tests/              offline tests with fake agy and claude
 scripts/            live checks against real AGY
 docs/               user docs; docs/history/ holds the original design log
