@@ -98,6 +98,24 @@ class SessionInUse(RuntimeError):
     pass
 
 
+def command_line(pid: int) -> list[str] | None:
+    """A process's arguments, or None if they can't be read."""
+    try:  # Linux: exact, NUL-separated
+        raw = open(f"/proc/{pid}/cmdline", "rb").read()
+        return [a.decode(errors="replace") for a in raw.split(b"\0") if a]
+    except FileNotFoundError:
+        if os.path.isdir("/proc/self"):
+            return []  # /proc exists, so the process is gone
+    except OSError:
+        pass
+    try:  # macOS and others; -ww: never cut long lines
+        out = subprocess.run(["ps", "-ww", "-p", str(pid), "-o", "command="],
+                             capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout.split()
+
+
 def is_live_bridge(pid: int) -> bool:
     """True if pid is a running agy-bridge process (guards against PID reuse)."""
     try:
@@ -106,18 +124,13 @@ def is_live_bridge(pid: int) -> bool:
         return False
     except PermissionError:
         pass
-    try:
-        out = subprocess.run(["ps", "-p", str(pid), "-o", "command="],
-                             capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.TimeoutExpired):
+    args = command_line(pid)
+    if args is None:
         return True  # can't tell: assume live, the safe choice
     # Match the program, not any path: a repo folder named agy-bridge appears in the
     # command line of every tool run from its venv. A bridge runs as `.../agy-bridge`
     # (console script) or `python -m agy_bridge`.
-    for token in out.stdout.split():
-        if os.path.basename(token) == "agy-bridge" or token == "agy_bridge":
-            return True
-    return False
+    return any(os.path.basename(a) == "agy-bridge" or a == "agy_bridge" for a in args)
 
 
 def claim(session_id: str, pid: int) -> None:

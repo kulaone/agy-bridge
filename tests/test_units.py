@@ -42,9 +42,16 @@ def test_claim_and_release(state: Path) -> None:
     assert registry.get("s1")["owner_pid"] is None
 
 
+def _fake_bridge() -> subprocess.Popen:
+    """A process whose command line names agy_bridge, so it counts as a live bridge."""
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)", "agy_bridge"])
+    assert registry.is_live_bridge(proc.pid), (
+        f"exit={proc.poll()} args={registry.command_line(proc.pid)} exe={sys.executable}")
+    return proc
+
+
 def test_claim_refused_while_another_bridge_lives(state: Path) -> None:
-    # A process whose command line names agy_bridge counts as a live bridge.
-    other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)", "agy_bridge"])
+    other = _fake_bridge()
     try:
         registry.put("s1", {"cwd": "/p", "owner_pid": other.pid})
         with pytest.raises(registry.SessionInUse, match="in use by another agy-bridge"):
@@ -66,8 +73,7 @@ def test_claim_ignores_unrelated_pid(state: Path) -> None:
 
 
 def test_overlapping_turns(state: Path) -> None:
-    bridge_proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)",
-                                    "agy_bridge"])
+    bridge_proc = _fake_bridge()
     try:
         _check_overlaps(bridge_proc.pid)
     finally:
