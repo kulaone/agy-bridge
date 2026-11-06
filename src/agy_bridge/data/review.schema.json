@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "required": ["verdict", "summary", "findings", "questions_for_claude"],
+  "properties": {
+    "verdict": {"type": "string", "enum": ["approve", "changes_requested", "needs_discussion"]},
+    "summary": {"type": "string"},
+    "findings": {"type": "array", "items": {
+      "type": "object",
+      "required": ["severity", "category", "location", "issue", "recommendation"],
+      "properties": {
+        "severity": {"type": "string", "enum": ["critical", "high", "medium", "low", "info"]},
+        "category": {"type": "string"},
+        "location": {"type": "string"},
+        "issue": {"type": "string"},
+        "recommendation": {"type": "string"}
+      }}},
+    "questions_for_claude": {"type": "array", "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in agy-bridge doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you asked Claude to do, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `agy-bridge doctor`
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: agy
+    attributes:
+      label: "`agy --version`"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.4 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant log excerpt (optional)
+      description: >
+        From ~/.agy-bridge/logs/<session>.ndjson with AGY_BRIDGE_LOG=1.
+        Logs contain your code: remove anything private first.
+      render: text
