@@ -50,7 +50,7 @@ SESSIONS: dict[str, Session] = {}
 @contextlib.asynccontextmanager
 async def lifespan(_server: MCPServer) -> AsyncIterator[None]:
     paths.ensure_dirs()
-    _prune_orphan_scratch()
+    _prune_orphans()
     _prune_idle_sessions()
     try:
         yield
@@ -70,11 +70,13 @@ mcp = MCPServer(
 )
 
 
-def _prune_orphan_scratch() -> None:
+def _prune_orphans() -> None:
+    """Remove scratch folders and backups of sessions that are no longer in the registry."""
     known = set(registry.list_all())
     for d in paths.SCRATCH_DIR.glob("*"):
         if d.is_dir() and d.name not in known:
             shutil.rmtree(d, ignore_errors=True)
+    backup.remove_orphans(known)
 
 
 def _prune_idle_sessions() -> None:

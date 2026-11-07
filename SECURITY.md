@@ -26,7 +26,9 @@ What this does **not** protect against:
 - shell commands that affect things outside the project, such as the network, other
   folders, or your accounts;
 - changes to ignored files, or edits that keep a file's size and mtime;
-- untracked files over 10 MB, or beyond 100 MB per turn, which are not backed up;
+- untracked files over 10 MB, or beyond 100 MB per turn, which are not backed up, nor
+  are untracked files in tool-output folders such as `__pycache__/`, `node_modules/` or
+  `build/` (staged files are);
 - a reviewed project's own skills or agents changing how AGY reviews it, for example
   a skill telling it to approve everything.
 

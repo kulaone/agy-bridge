@@ -78,8 +78,8 @@ def _is_tool_output(path: str) -> bool:
     for m in TOOL_OUTPUT_MARKERS:
         if m.endswith("/") and "/" + m in slashed:
             return True
-        if not m.endswith("/") and name.startswith(m):
-            return True
+        if not m.endswith("/") and (name == m or name.startswith(m + ".")):
+            return True  # `.coverage`, `.coverage.host`; not `.coveragerc`
     return False
 
 

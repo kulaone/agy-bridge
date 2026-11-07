@@ -22,11 +22,19 @@ All notable changes are listed here. The format follows
   mid-session keeps the conversation.
 
 - Sessions unused for 30 days lose their scratch folder and backups at server start, to
-  save space. They stay resumable.
+  save space. They stay resumable. Backups of sessions that no longer exist are removed
+  at server start too, as scratch folders already were.
 - Dependabot keeps the CI workflow's actions up to date.
 
 ### Changed
 
+- Backups no longer copy the same file once per turn. Every file under
+  `backup/<session>/turn-NNN/untracked/` is a hardlink into a content-addressed store,
+  `backup/blobs/`, shared by all turns and sessions, so a turn in which nothing changed
+  costs almost nothing. The restore recipe is unchanged. Untracked files in tool-output
+  folders (`__pycache__/`, `node_modules/`, build folders) are no longer backed up in git
+  repos that don't ignore them; staged files always are. The unused `git stash create` commit is gone, so a backup no
+  longer writes anything into the reviewed repo.
 - A model AGY rejects no longer becomes the session's default: the session goes back to
   its previous model and effort, and the result says so (`model_reverted_to`).
 - `agy_wait` on a turn this bridge didn't run (for example after Claude Code restarted)

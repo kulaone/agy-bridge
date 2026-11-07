@@ -125,6 +125,12 @@ The backup holds:
   (staged) files, up to 10 MB each and 100 MB in total;
 - `manifest.json`: the `HEAD` commit, the branch, and what was copied or skipped.
 
+Untracked files in tool-output folders such as `__pycache__/`, `node_modules/` and
+`build/` are not backed up; a file you have staged always is.
+Identical files are stored once: each file under `untracked/` is a hardlink into
+`~/.agy-bridge/backup/blobs/`, shared by all turns and sessions, so a turn in which
+nothing changed takes almost no space. `cp -R` copies them back as ordinary files.
+
 When a turn changes project files or git state, the result's `backup` note includes the
 exact restore commands for that turn. Ask Claude to restore it, or do it yourself from the
 project folder. Skip a line when its file or folder isn't in the backup (there was nothing

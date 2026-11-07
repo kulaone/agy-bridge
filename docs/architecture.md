@@ -129,5 +129,10 @@ A transcript holds the user's code, so it is written only when the user asks for
   So is a file that changes and then changes back within one turn.
 - **Ignored files are not watched** in git repos: most caches and build output.
 - **Backups skip files over 10 MB, and stop at 100 MB per turn.** The manifest lists
-  what was skipped.
+  what was skipped. Untracked files in tool-output folders (`__pycache__/`,
+  `node_modules/`, `dist/`, `build/` and the like) are not backed up, even when a repo
+  doesn't ignore them; staged files always are.
+- **Backups are deduplicated with hardlinks.** Each file under `untracked/` links into
+  `backup/blobs/<sha256>`; a blob is made by linking from the turn's own copy, so it is
+  never seen half-made by another bridge, and blobs with no links left are pruned.
 - **POSIX only.** `fcntl` locks and `ps` are used, so Windows is not supported.

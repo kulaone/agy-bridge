@@ -224,6 +224,92 @@ def test_backup_outside_git(state: Path, tmp_path: Path) -> None:
     assert (Path(manifest["dir"]) / "untracked" / "doc.md").read_text() == "hello"
 
 
+def test_backup_stores_each_distinct_file_once(state: Path, repo: Path) -> None:
+    big = (repo / "image.png")
+    big.write_bytes(b"\x89PNG" + bytes(range(256)) * 100)
+    (repo / "notes.txt").write_text("v1\n")
+
+    m1 = backup.take("s1", 1, str(repo))
+    m2 = backup.take("s2", 1, str(repo))  # another session on the same project
+    (repo / "notes.txt").write_text("v2\n")
+    m3 = backup.take("s1", 2, str(repo))
+    paths_ = [Path(m["dir"]) / "untracked" for m in (m1, m2, m3)]
+
+    inodes = {(p / "image.png").stat().st_ino for p in paths_}
+    assert len(inodes) == 1, "unchanged file is one inode across turns and sessions"
+    assert (paths_[0] / "notes.txt").stat().st_ino == (paths_[1] / "notes.txt").stat().st_ino
+    assert (paths_[0] / "notes.txt").stat().st_ino != (paths_[2] / "notes.txt").stat().st_ino
+    assert (paths_[2] / "notes.txt").read_text() == "v2\n"
+    assert len(list(backup.blobs_dir().iterdir())) == 3  # image, notes v1, notes v2
+
+    # Restoring with cp -R gives ordinary files, not links into the store.
+    out = repo.parent / "restored"
+    subprocess.run(["cp", "-R", f"{paths_[2]}/.", str(out)], check=True)
+    assert (out / "image.png").stat().st_nlink == 1
+    assert (out / "image.png").read_bytes() == big.read_bytes()
+
+    backup.remove("s1")
+    assert len(list(backup.blobs_dir().iterdir())) == 2  # s2 still holds image + notes v1
+    backup.remove("s2")
+    assert list(backup.blobs_dir().iterdir()) == []
+
+
+def test_backup_keeps_executable_bit_apart(state: Path, tmp_path: Path) -> None:
+    proj = tmp_path / "plain"
+    proj.mkdir()
+    (proj / "run.sh").write_text("#!/bin/sh\n")
+    (proj / "run.txt").write_text("#!/bin/sh\n")  # same bytes, not executable
+    os.chmod(proj / "run.sh", 0o755)
+    d = Path(backup.take("s1", 1, str(proj))["dir"]) / "untracked"
+    assert (d / "run.sh").stat().st_mode & 0o111
+    assert not (d / "run.txt").stat().st_mode & 0o111
+    assert (d / "run.sh").stat().st_ino != (d / "run.txt").stat().st_ino
+
+
+def test_backup_skips_tool_output_even_when_not_ignored(state: Path, repo: Path) -> None:
+    (repo / "__pycache__").mkdir()
+    (repo / "__pycache__" / "x.pyc").write_bytes(b"\x00")
+    (repo / "node_modules" / "pkg").mkdir(parents=True)
+    (repo / "node_modules" / "pkg" / "index.js").write_text("x")
+    (repo / "notes.txt").write_text("keep\n")
+    m = backup.take("s1", 1, str(repo))
+    d = Path(m["dir"]) / "untracked"
+    assert sorted(p.name for p in d.rglob("*") if p.is_file()) == ["notes.txt"]
+    assert m["untracked_excluded"] == 2
+    assert "stash_commit" not in m
+    assert git(repo, "stash", "list") == ""
+
+
+def test_backup_keeps_staged_files_in_tool_output_folders(state: Path, repo: Path) -> None:
+    (repo / "build").mkdir()
+    (repo / "build" / "wanted.txt").write_text("staged on purpose\n")
+    (repo / "build" / "junk.txt").write_text("not staged\n")
+    git(repo, "add", "build/wanted.txt")
+    d = Path(backup.take("s1", 1, str(repo))["dir"]) / "untracked"
+    assert (d / "build" / "wanted.txt").read_text() == "staged on purpose\n"
+    assert not (d / "build" / "junk.txt").exists()
+
+
+def test_tool_output_markers_do_not_match_config_files() -> None:
+    assert tree._is_tool_output(".coverage") and tree._is_tool_output(".coverage.mac")
+    assert not tree._is_tool_output(".coveragerc")
+
+
+def test_orphan_backups_are_removed_at_start(state: Path, repo: Path) -> None:
+    from agy_bridge import server
+
+    registry.put("kept", {"cwd": str(repo), "last_used": registry.now_iso()})
+    (repo / "shared.txt").write_text("x")
+    backup.take("kept", 1, str(repo))
+    backup.take("gone", 1, str(repo))
+    (repo / "only-gone.txt").write_text("x")
+    backup.take("gone", 2, str(repo))
+    server._prune_orphans()
+    assert backup.backup_root("kept").exists() and not backup.backup_root("gone").exists()
+    names = [p.name for p in backup.blobs_dir().iterdir()]
+    assert len(names) == 1  # only the file "kept" still links to
+
+
 # ----- agents and parsing -----------------------------------------------------------
 
 

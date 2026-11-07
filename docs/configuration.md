@@ -62,7 +62,8 @@ Turn it on to debug a problem or to report a bug. Read a log before sharing it.
 | `sessions.json` | One record per session: agent, project, model, effort, AGY conversation id, turn count, last verdict. | `agy_end` with `forget` |
 | `sessions.lock` | Lock file, so several bridges can share the registry. | — |
 | `scratch/<session>/` | AGY's own folder for experiments, such as copies or a `git worktree`. | `forget`; at server start, folders with no session, and those of sessions unused for 30 days |
-| `backup/<session>/turn-NNN/` | Your uncommitted work, saved before each turn. | Last 5 turns kept; `forget` removes all; at server start, removed for sessions unused for 30 days |
+| `backup/<session>/turn-NNN/` | Your uncommitted work, saved before each turn. | Last 5 turns kept; `forget` removes all; at server start, folders with no session, and those of sessions unused for 30 days |
+| `backup/blobs/` | One copy of each distinct file in the backups, by content hash. The turn folders hardlink into it. | Whenever a backup is removed, blobs nothing links to go with it |
 | `cache.json` | AGY's tool list (per AGY version) and model list (refreshed daily). | Delete it any time |
 | `install.json` | What `install` wrote, with checksums. | `uninstall` |
 | `logs/<session>.ndjson` | Transcripts, only when `AGY_BRIDGE_LOG` is on. | `forget` |
