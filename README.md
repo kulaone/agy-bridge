@@ -9,6 +9,9 @@ tools to start an AGY agent, send it work or a problem, read its answer, reply w
 fixes, counter-arguments or answers, and keep the conversation going over several
 turns, even across Claude Code sessions.
 
+Why a second agent, and how the review should run: [the review method](docs/review-method.md)
+behind agy-bridge.
+
 > **Not affiliated with Google or Anthropic.** agy-bridge is an independent open-source
 > project. Antigravity and Gemini are Google products; Claude and Claude Code are
 > Anthropic products. It drives the `agy` command-line tool you already have, using your
@@ -141,6 +144,7 @@ Read [SECURITY.md](SECURITY.md) before using it on code you can't afford to have
 
 ## Documentation
 
+- [The review method](docs/review-method.md): why agy-bridge exists, and the four-stage review it runs
 - [Install guide](docs/install.md): install options, per-project installs, uninstalling
 - [User guide](docs/user-guide.md): reviews, models, results, sessions, the tools
 - [Configuration](docs/configuration.md): environment variables, files and folders

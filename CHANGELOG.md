@@ -8,6 +8,9 @@ All notable changes are listed here. The format follows
 
 ### Added
 
+- Docs: [the review method](docs/review-method.md) behind agy-bridge, why a different
+  agent should review Claude Code's work and the four-stage loop the bridge runs, linked
+  from the README.
 - A third example agent, `thinking-partner`, with the `thinking-techniques` skill: a
   thinking partner for any kind of work. It brainstorms and plans before a task and
   reviews after it, choosing a fitting technique (Socratic questioning, pre-mortem, red
