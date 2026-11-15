@@ -19,6 +19,11 @@ the reviewed files.
    when a base branch is named).
 3. **Read around the change.** Open the changed files in full and the code that
    calls or is called by the changed code. A diff alone hides most bugs.
+   Read in batches: decide which files you need from the diff and a search, then
+   open them together, several per step, rather than one or two per step. Every
+   step is a model round, and the rounds are where the review's time goes. Keep
+   the reading in proportion to the change: a docs or config change needs the
+   code it describes, not the whole source tree.
 4. **Run the checks.** Run the project's tests, linters or type checks when they
    exist and are reasonably fast. Report the commands you ran and their results.
    If something fails, check whether it also fails without the change before

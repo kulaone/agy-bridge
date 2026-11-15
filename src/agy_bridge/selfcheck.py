@@ -2,8 +2,10 @@
 
 AGY hangs a subagent whose `tools:` list names a tool that doesn't exist, so
 before starting a session we compare the agent file's list with AGY's real
-tools. The real list costs a model call, so it is cached on disk per
-`agy --version`. `agy models` is cached the same way, with a TTL.
+tools. AGY announces the real list in the `init` event it emits as soon as a
+stream-json process starts, before any message or model call, so reading it
+costs a couple of seconds; the result is cached on disk per `agy --version`.
+`agy models` is cached the same way, with a TTL.
 """
 
 from __future__ import annotations
@@ -74,22 +76,48 @@ async def real_tools(version: str | None = None) -> list[str]:
     entry = cache.get("tools")
     if entry and entry.get("version") == version:
         return entry["tools"]
+    tools = await _tools_from_init()
+    cache["tools"] = {"version": version, "tools": tools, "at": time.time()}
+    _save_cache(cache)
+    return tools
 
+
+async def _tools_from_init(timeout: float = 60) -> list[str]:
+    """Start a stream-json process, read the tool list from its `init` event, and end it
+    by closing stdin. No message is sent, so no model is called."""
     paths.ensure_dirs()  # AGY runs in the state folder
-    _, out, err = await _run("-p", "Reply with the word ok", "--output-format", "stream-json",
-                             "--print-timeout", "120s", timeout=180,
-                             cwd=str(paths.STATE_DIR))
-    for line in out.splitlines():
+    proc = await asyncio.create_subprocess_exec(
+        paths.agy_binary(), "--input-format", "stream-json", "--output-format", "stream-json",
+        "--disable-slash-commands", cwd=str(paths.STATE_DIR),
+        stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+    assert proc.stdout and proc.stdin and proc.stderr
+    tools: list[str] | None = None
+    try:
+        async with asyncio.timeout(timeout):
+            while tools is None:
+                line = await proc.stdout.readline()
+                if not line:
+                    break
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if event.get("event") == "init":
+                    tools = event["init"]["tools"]
+    except TimeoutError:
+        pass
+    finally:
+        proc.stdin.close()
         try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("event") == "init":
-            tools = event["init"]["tools"]
-            cache["tools"] = {"version": version, "tools": tools, "at": time.time()}
-            _save_cache(cache)
-            return tools
-    raise RuntimeError(f"could not read AGY's tool list (no init event). stderr: {err[-500:]}")
+            await asyncio.wait_for(proc.wait(), 5)
+        except TimeoutError:
+            proc.kill()
+            await proc.wait()
+    if tools is None:
+        err = (await proc.stderr.read()).decode(errors="replace")
+        raise RuntimeError(f"could not read AGY's tool list (no init event). stderr: {err[-500:]}")
+    return tools
 
 
 async def models(refresh: bool = False) -> list[dict[str, str]]:

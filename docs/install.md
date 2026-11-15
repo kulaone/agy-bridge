@@ -48,8 +48,8 @@ the same way.
    - Claude Code can connect to the server;
    - the state folder is writable.
 
-   The first run takes about a minute while it asks AGY for its tool list. After that,
-   the list is cached until AGY's version changes.
+   It reads AGY's tool list once, which takes a few seconds, and caches it until AGY's
+   version changes.
 3. In Claude Code, ask: "Review my uncommitted changes with AGY."
 
 ## What `install` does

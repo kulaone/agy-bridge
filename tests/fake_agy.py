@@ -69,16 +69,13 @@ def stream(args: list[str]) -> None:
     model = arg(args, "--model")
     denied: list[dict] = []  # accumulates across turns, as AGY's does
     deny_pending = False
-    started = False
     index = 0
+    emit(init_event(conv, args))  # AGY announces itself before reading any message
 
     for line in sys.stdin:
         if not line.strip():
             continue
         text = json.loads(line)["message"]["content"]
-        if not started:
-            emit(init_event(conv, args))
-            started = True
         history.append(text)
         history_file.write_text(json.dumps(history))
         step(conv, index, state="DONE", step_type="user_input")

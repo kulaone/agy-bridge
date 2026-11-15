@@ -80,7 +80,8 @@ Several Claude Code windows each run their own bridge, and all of them share
 
 AGY hangs when an agent lists a tool that doesn't exist. So before a session starts, the
 bridge compares the agent file's `tools:` with the tools AGY really has. It finds those by
-running one tiny prompt and reading AGY's `init` event. The result is cached per AGY
+starting a stream-json process and reading the `init` event AGY emits before any message,
+then closing its stdin: a couple of seconds, no model call. The result is cached per AGY
 version; the model list is cached for a day.
 
 The bridge also compares AGY's version with the versions it was tested with, and adds a

@@ -31,6 +31,13 @@ All notable changes are listed here. The format follows
 
 ### Changed
 
+- The tool self-check no longer runs a model prompt. It reads AGY's tool list from the
+  `init` event a stream-json process emits at startup, so the first session after an AGY
+  upgrade starts seconds, not minutes, later.
+- The `code-review` skill asks the reviewer to read the files it needs in a few batches
+  rather than one or two per step, and to keep its reading in proportion to the change.
+  Each step is a model round, and the rounds are where review time goes.
+
 - Backups no longer copy the same file once per turn. Every file under
   `backup/<session>/turn-NNN/untracked/` is a hardlink into a content-addressed store,
   `backup/blobs/`, shared by all turns and sessions, so a turn in which nothing changed

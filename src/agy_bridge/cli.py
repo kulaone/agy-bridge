@@ -371,7 +371,7 @@ def doctor(args: argparse.Namespace) -> int:
             r.fail(f"{agent_file} still has a {{{{...}}}} placeholder: reinstall it")
         try:
             if first_check:
-                print("  … checking agents against AGY's tools (the first run takes a minute)")
+                print("  … checking agents against AGY's tools")
                 first_check = False
             asyncio.run(selfcheck.check_agent(name, cwd))
             r.ok(f"agent '{name}' ({agent_file}) uses only tools AGY has")
