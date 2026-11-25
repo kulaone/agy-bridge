@@ -156,3 +156,5 @@ Read [SECURITY.md](SECURITY.md) before using it on code you can't afford to have
 ## License
 
 [MIT](LICENSE) © Daniel Gwerzman
+
+[![M8ven Verified](https://m8ven.ai/badge/mcp/kulaone-agy-bridge-2vo3x8?variant=verified&v=53641923eb89d6f0e316cdf8bbfc1d97)](https://m8ven.ai/mcp/kulaone-agy-bridge-2vo3x8?s=readme)
