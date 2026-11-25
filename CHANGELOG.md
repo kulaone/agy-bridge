@@ -8,6 +8,9 @@ All notable changes are listed here. The format follows
 
 ### Added
 
+- Every tool now declares all four MCP annotation hints (`readOnlyHint`,
+  `destructiveHint`, `idempotentHint`, `openWorldHint`), so a host can tell which calls
+  only read, which are safe to repeat, and that `agy_end` can delete a session's files.
 - Docs: [the review method](docs/review-method.md) behind agy-bridge, why a different
   agent should review Claude Code's work and the four-stage loop the bridge runs, linked
   from the README.

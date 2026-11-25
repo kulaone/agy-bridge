@@ -17,6 +17,7 @@ from typing import Any
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import ToolAnnotations
 
 from . import backup, paths, registry, selfcheck
 from .session import Session, Turn, build_turn_payload, new_session_id, scratch_dir
@@ -93,19 +94,33 @@ def _prune_idle_sessions() -> None:
             backup.remove(sid)
 
 
-def tool(fn):
+def tool(*, read_only: bool = False, destructive: bool = False, idempotent: bool = False,
+         open_world: bool = False):
     """Register an MCP tool whose expected failures reach Claude with their message.
 
     MCPServer replaces the message of any exception other than ToolError with a bare
     "Error executing tool", so the errors we raise on purpose are converted.
+
+    The flags become the tool's MCP annotation hints; all four are always declared, so a
+    host knows which calls are safe to repeat or run without asking. `read_only` means the
+    tool neither touches the project nor creates, advances or deletes a session; the
+    bridge's own bookkeeping under ~/.agy-bridge (the model cache, a turn's stored verdict)
+    does not count, or a host would ask again just to poll a turn it already approved.
+    `open_world` marks the tools that start or talk to an AGY process, which reaches
+    Google's servers.
     """
-    @functools.wraps(fn)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await fn(*args, **kwargs)
-        except (ValueError, RuntimeError, KeyError, OSError) as e:
-            raise ToolError(str(e)) from e
-    return mcp.tool()(wrapper)
+    hints = ToolAnnotations(read_only_hint=read_only, destructive_hint=destructive,
+                            idempotent_hint=idempotent, open_world_hint=open_world)
+
+    def register(fn):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await fn(*args, **kwargs)
+            except (ValueError, RuntimeError, KeyError, OSError) as e:
+                raise ToolError(str(e)) from e
+        return mcp.tool(annotations=hints)(wrapper)
+    return register
 
 
 def _owned_elsewhere(rec: dict[str, Any]) -> int | None:
@@ -171,7 +186,7 @@ def _first_message(message: str, session_id: str, cwd: str) -> str:
             "Do not modify files in the project directory.")
 
 
-@tool
+@tool(read_only=True, idempotent=True, open_world=True)
 async def agy_list_agents(refresh_models: bool = False) -> dict[str, Any]:
     """List AGY agents available to agy_start and the model slugs AGY offers.
 
@@ -187,7 +202,7 @@ async def agy_list_agents(refresh_models: bool = False) -> dict[str, Any]:
     return out
 
 
-@tool
+@tool(open_world=True)
 async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
                     model: str | None = None, effort: str | None = None,
                     format: str = "review", schema: dict[str, Any] | None = None,
@@ -238,7 +253,7 @@ async def agy_start(agent: str, cwd: str, message: str, ctx: Context,
     return payload
 
 
-@tool
+@tool(open_world=True)
 async def agy_say(session_id: str, message: str, ctx: Context,
                   model: str | None = None, effort: str | None = None,
                   format: str | None = None,
@@ -264,7 +279,7 @@ async def agy_say(session_id: str, message: str, ctx: Context,
     return await _wait_turn(session, turn, wait_seconds, ctx)
 
 
-@tool
+@tool(read_only=True, idempotent=True)
 async def agy_wait(session_id: str, ctx: Context,
                    wait_seconds: float = DEFAULT_WAIT) -> dict[str, Any]:
     """Keep waiting for a turn that agy_start/agy_say returned as RUNNING, and return its
@@ -285,7 +300,7 @@ async def agy_wait(session_id: str, ctx: Context,
     return await _wait_turn(session, session.turn, wait_seconds, ctx)
 
 
-@tool
+@tool(read_only=True, idempotent=True)
 async def agy_status(session_id: str) -> dict[str, Any]:
     """What an AGY session is doing right now: idle or working, current turn, elapsed time,
     and the last tool steps AGY took. Use it when the user asks for progress."""
@@ -306,7 +321,7 @@ async def agy_status(session_id: str) -> dict[str, Any]:
             "turns": rec.get("turns", 0), "last_used": rec.get("last_used")}
 
 
-@tool
+@tool(idempotent=True, open_world=True)
 async def agy_resume(session_id: str | None = None, conversation_id: str | None = None,
                      agent: str | None = None, cwd: str | None = None) -> dict[str, Any]:
     """Re-open a stored AGY session in a fresh process, by session_id or conversation_id.
@@ -337,7 +352,7 @@ async def agy_resume(session_id: str | None = None, conversation_id: str | None 
     return session.status()
 
 
-@tool
+@tool(read_only=True, idempotent=True)
 async def agy_sessions(cwd: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
     """List stored AGY sessions, most recently used first. Filter by project with cwd."""
     project = str(Path(cwd).expanduser().resolve()) if cwd else None
@@ -357,7 +372,7 @@ async def agy_sessions(cwd: str | None = None, limit: int = 20) -> list[dict[str
     return rows[:limit]
 
 
-@tool
+@tool(destructive=True)
 async def agy_end(session_id: str, forget: bool = False) -> dict[str, Any]:
     """Stop a session's AGY process. The session stays resumable unless forget=True, which
     also deletes it from the registry and removes its scratch, backup and log files."""

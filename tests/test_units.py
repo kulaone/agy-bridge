@@ -363,3 +363,24 @@ def test_parse_json_response_none() -> None:
 def test_reviewer_settings_scope_writes_to_scratch(state: Path) -> None:
     allow = __import__("json").loads(reviewer_settings("abc"))["permissions"]["allow"]
     assert allow == ["command(regex:.*)", f"write_file({paths.SCRATCH_DIR / 'abc'}/)"]
+
+
+def test_every_tool_declares_all_four_hints() -> None:
+    import asyncio
+
+    from agy_bridge import server
+    declared = {
+        t.name: (t.annotations.read_only_hint, t.annotations.destructive_hint,
+                 t.annotations.idempotent_hint, t.annotations.open_world_hint)
+        for t in asyncio.run(server.mcp.list_tools())}
+    #                          read-only  destructive  idempotent  open-world
+    assert declared == {
+        "agy_list_agents": (True, False, True, True),
+        "agy_start": (False, False, False, True),
+        "agy_say": (False, False, False, True),
+        "agy_wait": (True, False, True, False),
+        "agy_status": (True, False, True, False),
+        "agy_resume": (False, False, True, True),
+        "agy_sessions": (True, False, True, False),
+        "agy_end": (False, True, False, False),
+    }
